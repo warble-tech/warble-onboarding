@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+# warble-onboarding/linux/install-devtools.sh
+# Full dev toolchain for Warble engineers on Ubuntu 22.04 / 24.04
+# Run as: bash install-devtools.sh
+# Idempotent — safe to re-run
+set -euo pipefail
+
+GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
+step() { echo -e "\n${GREEN}==>${NC} ${CYAN}$1${NC}"; }
+ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
+skip() { echo -e "  ${YELLOW}–${NC} $1 (already installed)"; }
+
+ARCH=$(dpkg --print-architecture)
+CODENAME=$(. /etc/os-release; echo "$VERSION_CODENAME")
+
+step "Updating apt..."
+sudo apt-get update -qq
+
+# ── CORE TOOLS ───────────────────────────────────────────────────────────────
+step "Installing core tools..."
+sudo apt-get install -y \
+    git curl wget jq yq unzip zip \
+    build-essential pkg-config \
+    ca-certificates gnupg lsb-release \
+    htop ncdu iotop nethogs \
+    ripgrep fd-find bat tldr \
+    tmux zsh fzf direnv \
+    python3 python3-pip python3-venv \
+    2>/dev/null
+ok "core tools"
+
+# ── ZSH + OH-MY-ZSH ──────────────────────────────────────────────────────────
+step "Setting up Zsh + Oh-My-Zsh..."
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    ok "oh-my-zsh"
+else
+    skip "oh-my-zsh"
+fi
+sudo chsh -s "$(which zsh)" "$USER" 2>/dev/null || true
+
+# ── GO ────────────────────────────────────────────────────────────────────────
+step "Installing Go 1.24..."
+GO_VERSION="1.24.2"
+if ! go version 2>/dev/null | grep -q "$GO_VERSION"; then
+    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+    rm /tmp/go.tar.gz
+    grep -q '/usr/local/go/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> "$HOME/.zshrc"
+    grep -q '/usr/local/go/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> "$HOME/.bashrc"
+    ok "go $GO_VERSION"
+else
+    skip "go $GO_VERSION"
+fi
+
+# ── NODE (via nvm) ────────────────────────────────────────────────────────────
+step "Installing Node.js 22 via nvm..."
+if [ ! -d "$HOME/.nvm" ]; then
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    nvm install 22 && nvm alias default 22
+    ok "node 22 via nvm"
+else
+    skip "nvm"
+fi
+
+# ── PYTHON UV ─────────────────────────────────────────────────────────────────
+step "Installing uv (fast Python package manager)..."
+if ! which uv &>/dev/null; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ok "uv"
+else
+    skip "uv"
+fi
+
+# ── DOCKER / NERDCTL (Rancher Desktop) ───────────────────────────────────────
+step "Installing Rancher Desktop (nerdctl)..."
+RANCHER_VERSION="1.22.0"
+if ! which rdctl &>/dev/null; then
+    curl -fsSL "https://github.com/rancher-sandbox/rancher-desktop/releases/download/v${RANCHER_VERSION}/rancher-desktop-${RANCHER_VERSION}-amd64.deb" -o /tmp/rancher.deb
+    sudo apt-get install -y /tmp/rancher.deb
+    rm /tmp/rancher.deb
+    ok "rancher desktop $RANCHER_VERSION"
+else
+    skip "rancher desktop"
+fi
+
+# nerdctl aliases
+for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
+    if [ -f "$rc" ] && ! grep -q "nerdctl aliased" "$rc"; then
+        cat >> "$rc" << 'ALIAS'
+
+# Rancher Desktop — nerdctl aliased as docker
+export PATH="$HOME/.rd/bin:$PATH"
+alias docker="nerdctl"
+alias docker-compose="nerdctl compose"
+alias d="nerdctl"
+alias dc="nerdctl compose"
+alias dps="nerdctl ps"
+alias dimg="nerdctl images"
+alias dlogs="nerdctl logs -f"
+alias dexec="nerdctl exec -it"
+alias dprune="nerdctl system prune -f"
+ALIAS
+        ok "nerdctl aliases → $rc"
+    fi
+done
+
+# ── KUBECTL ───────────────────────────────────────────────────────────────────
+step "Installing kubectl..."
+if ! which kubectl &>/dev/null; then
+    K8S_VER=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+    curl -fsSL "https://dl.k8s.io/release/${K8S_VER}/bin/linux/amd64/kubectl" -o /tmp/kubectl
+    sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+    rm /tmp/kubectl
+    ok "kubectl $K8S_VER"
+else
+    skip "kubectl $(kubectl version --client --short 2>/dev/null | head -1)"
+fi
+
+# ── HELM ──────────────────────────────────────────────────────────────────────
+step "Installing Helm..."
+if ! which helm &>/dev/null; then
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    ok "helm $(helm version --short 2>/dev/null)"
+else
+    skip "helm"
+fi
+
+# ── TERRAFORM / OPENTOFU ──────────────────────────────────────────────────────
+step "Installing OpenTofu (Terraform OSS fork)..."
+if ! which tofu &>/dev/null; then
+    curl -fsSL https://get.opentofu.org/install-opentofu.sh | sudo bash -s -- --install-method deb
+    ok "opentofu $(tofu version 2>/dev/null | head -1)"
+else
+    skip "opentofu"
+fi
+
+step "Installing Terraform (for legacy compat)..."
+if ! which terraform &>/dev/null; then
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $CODENAME main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+    sudo apt-get update -qq && sudo apt-get install -y terraform
+    ok "terraform $(terraform version 2>/dev/null | head -1)"
+else
+    skip "terraform"
+fi
+
+# ── GCLOUD CLI ────────────────────────────────────────────────────────────────
+step "Installing Google Cloud CLI..."
+if ! which gcloud &>/dev/null; then
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+    sudo apt-get update -qq && sudo apt-get install -y google-cloud-cli google-cloud-cli-gke-gcloud-auth-plugin
+    ok "gcloud"
+else
+    skip "gcloud"
+fi
+
+# ── K9S ───────────────────────────────────────────────────────────────────────
+step "Installing k9s (Kubernetes TUI)..."
+if ! which k9s &>/dev/null; then
+    K9S_VER=$(curl -fsSL https://api.github.com/repos/derailed/k9s/releases/latest | jq -r .tag_name)
+    curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VER}/k9s_Linux_amd64.tar.gz" -o /tmp/k9s.tar.gz
+    sudo tar -C /usr/local/bin -xzf /tmp/k9s.tar.gz k9s
+    rm /tmp/k9s.tar.gz
+    ok "k9s $K9S_VER"
+else
+    skip "k9s"
+fi
+
+# ── OLLAMA ────────────────────────────────────────────────────────────────────
+step "Installing Ollama (local LLM runtime)..."
+if ! which ollama &>/dev/null; then
+    curl -fsSL https://ollama.com/install.sh | sh
+    ok "ollama"
+    echo ""
+    echo "  Pull a model to get started:"
+    echo "    ollama pull llama3.2        # 2GB, good general purpose"
+    echo "    ollama pull mistral         # 4GB, strong coding"
+    echo "    ollama pull nomic-embed-text # embedding model for pgvector RAG"
+else
+    skip "ollama"
+fi
+
+# ── GITHUB CLI ────────────────────────────────────────────────────────────────
+step "Installing GitHub CLI..."
+if ! which gh &>/dev/null; then
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
+    sudo apt-get update -qq && sudo apt-get install -y gh
+    ok "gh $(gh version 2>/dev/null | head -1)"
+else
+    skip "gh"
+fi
+
+# ── LAZYGIT ───────────────────────────────────────────────────────────────────
+step "Installing lazygit..."
+if ! which lazygit &>/dev/null; then
+    LG_VER=$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | jq -r .tag_name | sed 's/v//')
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
+    sudo tar -C /usr/local/bin -xzf /tmp/lazygit.tar.gz lazygit
+    rm /tmp/lazygit.tar.gz
+    ok "lazygit $LG_VER"
+else
+    skip "lazygit"
+fi
+
+# ── VSCODE ────────────────────────────────────────────────────────────────────
+step "Installing VS Code..."
+if ! which code &>/dev/null; then
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+    echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list
+    sudo apt-get update -qq && sudo apt-get install -y code
+    ok "vscode"
+else
+    skip "vscode"
+fi
+
+# ── GIT CONFIG ────────────────────────────────────────────────────────────────
+step "Git global config..."
+git config --global core.editor "code --wait"
+git config --global pull.rebase true
+git config --global init.defaultBranch main
+git config --global push.autoSetupRemote true
+git config --global core.autocrlf input
+ok "git config"
+
+# ── FINAL ─────────────────────────────────────────────────────────────────────
+echo ""
+echo "════════════════════════════════════════════════"
+echo " Warble dev toolchain installed."
+echo "════════════════════════════════════════════════"
+echo ""
+echo " Reload shell:  source ~/.zshrc"
+echo " Auth GCP:      gcloud auth login"
+echo " Auth GitHub:   gh auth login"
+echo " Start Ollama:  ollama serve"
+echo " Pull model:    ollama pull llama3.2"
+echo " Launch k9s:    k9s"
+echo ""

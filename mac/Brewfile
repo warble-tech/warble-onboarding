@@ -1,0 +1,82 @@
+# warble-onboarding/mac/Brewfile
+# Full dev toolchain for Warble engineers on macOS (Apple Silicon + Intel)
+# Run: brew bundle --file=Brewfile
+# Install Homebrew first: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# ── TAPS ─────────────────────────────────────────────────────────────────────
+tap "homebrew/bundle"
+tap "hashicorp/tap"
+tap "opentofu/tap"
+
+# ── CORE CLI TOOLS ────────────────────────────────────────────────────────────
+brew "git"
+brew "curl"
+brew "wget"
+brew "jq"
+brew "yq"
+brew "unzip"
+brew "zip"
+brew "pkg-config"
+
+# modern shell tools
+brew "ripgrep"        # rg — fast grep replacement
+brew "fd"             # fast find replacement
+brew "bat"            # cat with syntax highlighting
+brew "fzf"            # fuzzy finder
+brew "tldr"           # simplified man pages
+brew "htop"           # interactive process viewer
+brew "ncdu"           # disk usage analyzer
+brew "tmux"           # terminal multiplexer
+brew "direnv"         # per-directory env vars
+brew "zsh"            # z shell (macOS default, kept up to date)
+
+# ── ZSH PLUGINS (via brew, not oh-my-zsh) ────────────────────────────────────
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+
+# ── GO ────────────────────────────────────────────────────────────────────────
+brew "go"             # installs latest stable (1.24.x)
+
+# ── NODE (via nvm) ────────────────────────────────────────────────────────────
+brew "nvm"
+# After brew install: add nvm to .zshrc, then: nvm install 22 && nvm alias default 22
+
+# ── PYTHON ────────────────────────────────────────────────────────────────────
+brew "python@3.12"
+brew "uv"             # fast Python package/project manager (astral.sh)
+
+# ── CONTAINER TOOLING ─────────────────────────────────────────────────────────
+cask "rancher"        # Rancher Desktop — containerd + nerdctl (Docker alternative)
+# nerdctl is bundled with Rancher Desktop at ~/.rd/bin/nerdctl
+
+# ── KUBERNETES ────────────────────────────────────────────────────────────────
+brew "kubectl"
+brew "helm"
+brew "k9s"            # Kubernetes TUI
+brew "kubectx"        # kubectx + kubens — context/namespace switcher
+
+# ── INFRASTRUCTURE ────────────────────────────────────────────────────────────
+brew "opentofu/tap/opentofu"      # OpenTofu (Terraform OSS fork)
+brew "hashicorp/tap/terraform"    # Terraform (legacy compat)
+
+# ── CLOUD CLIs ────────────────────────────────────────────────────────────────
+cask "google-cloud-sdk"           # gcloud, gsutil, bq — includes GKE auth plugin
+
+# ── AI / LLM ─────────────────────────────────────────────────────────────────
+brew "ollama"         # local LLM runtime
+
+# ── GIT TOOLING ───────────────────────────────────────────────────────────────
+brew "gh"             # GitHub CLI
+brew "lazygit"        # terminal UI for git
+
+# ── EDITORS / IDE ─────────────────────────────────────────────────────────────
+cask "visual-studio-code"
+
+# ── FONTS (JetBrains Mono for terminal / VSCode) ──────────────────────────────
+tap "homebrew/cask-fonts"
+cask "font-jetbrains-mono"
+cask "font-jetbrains-mono-nerd-font"
+
+# ── PRODUCTIVITY ─────────────────────────────────────────────────────────────
+cask "iterm2"         # better terminal (alternative to macOS Terminal)
+cask "rectangle"      # window manager (free, open source)

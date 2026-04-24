@@ -1,0 +1,287 @@
+# warble-onboarding/windows/install-devtools.ps1
+# Full dev toolchain for Warble engineers on Windows 11
+# Run as: PowerShell -ExecutionPolicy Bypass -File install-devtools.ps1
+# Idempotent — safe to re-run
+#Requires -RunAsAdministrator
+
+$ErrorActionPreference = "Stop"
+
+function Step  { param($msg) Write-Host "`n==> $msg" -ForegroundColor Cyan }
+function Ok    { param($msg) Write-Host "  [OK] $msg" -ForegroundColor Green }
+function Skip  { param($msg) Write-Host "  [--] $msg (already installed)" -ForegroundColor Yellow }
+function Winget { param([string[]]$args) winget install --accept-source-agreements --accept-package-agreements @args }
+
+# ── WINGET BOOTSTRAP ─────────────────────────────────────────────────────────
+Step "Checking winget..."
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host "  winget not found. Installing App Installer from Microsoft Store..." -ForegroundColor Yellow
+    Start-Process "ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1"
+    Read-Host "  Install 'App Installer' from the Store, then press Enter to continue"
+}
+winget upgrade --all --silent --accept-source-agreements --accept-package-agreements 2>$null
+Ok "winget"
+
+# ── SCOOP (for tools not in winget) ──────────────────────────────────────────
+Step "Installing Scoop..."
+if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+    scoop bucket add extras
+    scoop bucket add versions
+    Ok "scoop"
+} else {
+    Skip "scoop"
+}
+
+# ── GIT ───────────────────────────────────────────────────────────────────────
+Step "Installing Git..."
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Winget "Git.Git"
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+    Ok "git"
+} else {
+    Skip "git $(git --version 2>$null)"
+}
+
+# ── CORE CLI TOOLS ────────────────────────────────────────────────────────────
+Step "Installing core CLI tools..."
+$cliTools = @(
+    @{ Id = "jqlang.jq";         Name = "jq"      },
+    @{ Id = "sharkdp.ripgrep";   Name = "ripgrep" },
+    @{ Id = "sharkdp.fd";        Name = "fd"      },
+    @{ Id = "sharkdp.bat";       Name = "bat"     },
+    @{ Id = "junegunn.fzf";      Name = "fzf"     },
+    @{ Id = "stedolan.jq";       Name = "jq"      }
+)
+foreach ($tool in $cliTools) {
+    if (-not (Get-Command $tool.Name -ErrorAction SilentlyContinue)) {
+        winget install --id $tool.Id --silent --accept-source-agreements --accept-package-agreements 2>$null
+        Ok $tool.Name
+    } else {
+        Skip $tool.Name
+    }
+}
+
+# tldr via npm (installed after node)
+# yq via scoop
+if (-not (Get-Command yq -ErrorAction SilentlyContinue)) {
+    scoop install yq
+    Ok "yq"
+} else {
+    Skip "yq"
+}
+
+# ── GO ────────────────────────────────────────────────────────────────────────
+Step "Installing Go 1.24..."
+$GoVersion = "1.24.2"
+if (-not (Get-Command go -ErrorAction SilentlyContinue) -or -not (go version 2>$null | Select-String $GoVersion)) {
+    winget install --id GoLang.Go --version $GoVersion --silent --accept-source-agreements --accept-package-agreements
+    $env:PATH = $env:PATH + ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"
+    [System.Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
+    Ok "go $GoVersion"
+} else {
+    Skip "go $GoVersion"
+}
+
+# ── NODE.JS (via nvm-windows) ─────────────────────────────────────────────────
+Step "Installing Node.js 22 via nvm-windows..."
+if (-not (Get-Command nvm -ErrorAction SilentlyContinue)) {
+    winget install --id CoreyButler.NVMforWindows --silent --accept-source-agreements --accept-package-agreements
+    # Reload PATH
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+    & nvm install 22
+    & nvm use 22
+    Ok "node 22 via nvm-windows"
+} else {
+    Skip "nvm-windows"
+}
+
+# ── PYTHON (via uv) ───────────────────────────────────────────────────────────
+Step "Installing Python + uv..."
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    powershell -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    Ok "uv"
+} else {
+    Skip "uv"
+}
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    winget install --id Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
+    Ok "python 3.12"
+} else {
+    Skip "python"
+}
+
+# ── RANCHER DESKTOP (nerdctl) ─────────────────────────────────────────────────
+Step "Installing Rancher Desktop..."
+if (-not (Get-Command rdctl -ErrorAction SilentlyContinue)) {
+    winget install --id SUSE.RancherDesktop --silent --accept-source-agreements --accept-package-agreements
+    Ok "rancher desktop"
+    Write-Host "  First launch: choose containerd (not dockerd) in settings." -ForegroundColor Yellow
+    Write-Host "  Add `$env:USERPROFILE\.rd\bin to PATH after first launch." -ForegroundColor Yellow
+} else {
+    Skip "rancher desktop"
+}
+
+# nerdctl aliases (PowerShell profile)
+Step "Adding nerdctl aliases to PowerShell profile..."
+$profilePath = $PROFILE.CurrentUserAllHosts
+if (-not (Test-Path $profilePath)) { New-Item -Path $profilePath -ItemType File -Force | Out-Null }
+$aliasBlock = @'
+
+# Rancher Desktop — nerdctl aliased as docker
+$env:PATH = "$env:USERPROFILE\.rd\bin;$env:PATH"
+function docker         { nerdctl @args }
+function docker-compose { nerdctl compose @args }
+function d              { nerdctl @args }
+function dc             { nerdctl compose @args }
+function dps            { nerdctl ps @args }
+function dimg           { nerdctl images @args }
+function dlogs          { nerdctl logs -f @args }
+function dexec          { nerdctl exec -it @args }
+function dprune         { nerdctl system prune -f @args }
+'@
+if (-not (Select-String -Path $profilePath -Pattern "nerdctl aliased" -Quiet -ErrorAction SilentlyContinue)) {
+    Add-Content -Path $profilePath -Value $aliasBlock
+    Ok "nerdctl aliases → $profilePath"
+} else {
+    Skip "nerdctl aliases"
+}
+
+# ── KUBECTL ───────────────────────────────────────────────────────────────────
+Step "Installing kubectl..."
+if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+    winget install --id Kubernetes.kubectl --silent --accept-source-agreements --accept-package-agreements
+    Ok "kubectl"
+} else {
+    Skip "kubectl $(kubectl version --client --short 2>$null)"
+}
+
+# ── HELM ──────────────────────────────────────────────────────────────────────
+Step "Installing Helm..."
+if (-not (Get-Command helm -ErrorAction SilentlyContinue)) {
+    scoop install helm
+    Ok "helm $(helm version --short 2>$null)"
+} else {
+    Skip "helm"
+}
+
+# ── OPENTOFU ─────────────────────────────────────────────────────────────────
+Step "Installing OpenTofu (Terraform OSS fork)..."
+if (-not (Get-Command tofu -ErrorAction SilentlyContinue)) {
+    winget install --id OpenTofu.OpenTofu --silent --accept-source-agreements --accept-package-agreements
+    Ok "opentofu"
+} else {
+    Skip "opentofu"
+}
+
+# ── TERRAFORM ─────────────────────────────────────────────────────────────────
+Step "Installing Terraform (legacy compat)..."
+if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
+    winget install --id Hashicorp.Terraform --silent --accept-source-agreements --accept-package-agreements
+    Ok "terraform"
+} else {
+    Skip "terraform"
+}
+
+# ── GCLOUD CLI ────────────────────────────────────────────────────────────────
+Step "Installing Google Cloud CLI..."
+if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
+    winget install --id Google.CloudSDK --silent --accept-source-agreements --accept-package-agreements
+    Ok "gcloud"
+} else {
+    Skip "gcloud"
+}
+
+# ── K9S ───────────────────────────────────────────────────────────────────────
+Step "Installing k9s (Kubernetes TUI)..."
+if (-not (Get-Command k9s -ErrorAction SilentlyContinue)) {
+    scoop install k9s
+    Ok "k9s"
+} else {
+    Skip "k9s"
+}
+
+# ── OLLAMA ────────────────────────────────────────────────────────────────────
+Step "Installing Ollama (local LLM runtime)..."
+if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+    winget install --id Ollama.Ollama --silent --accept-source-agreements --accept-package-agreements
+    Ok "ollama"
+    Write-Host ""
+    Write-Host "  Pull a model to get started:" -ForegroundColor Yellow
+    Write-Host "    ollama pull llama3.2        # 2GB, good general purpose"
+    Write-Host "    ollama pull mistral         # 4GB, strong coding"
+    Write-Host "    ollama pull nomic-embed-text # embedding model for pgvector RAG"
+} else {
+    Skip "ollama"
+}
+
+# ── GITHUB CLI ────────────────────────────────────────────────────────────────
+Step "Installing GitHub CLI..."
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    winget install --id GitHub.cli --silent --accept-source-agreements --accept-package-agreements
+    Ok "gh"
+} else {
+    Skip "gh"
+}
+
+# ── LAZYGIT ───────────────────────────────────────────────────────────────────
+Step "Installing lazygit..."
+if (-not (Get-Command lazygit -ErrorAction SilentlyContinue)) {
+    scoop install lazygit
+    Ok "lazygit"
+} else {
+    Skip "lazygit"
+}
+
+# ── VSCODE ────────────────────────────────────────────────────────────────────
+Step "Installing VS Code..."
+if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
+    winget install --id Microsoft.VisualStudioCode --silent --accept-source-agreements --accept-package-agreements
+    Ok "vscode"
+} else {
+    Skip "vscode"
+}
+
+# ── WINDOWS TERMINAL ─────────────────────────────────────────────────────────
+Step "Installing Windows Terminal..."
+if (-not (Get-Command wt -ErrorAction SilentlyContinue)) {
+    winget install --id Microsoft.WindowsTerminal --silent --accept-source-agreements --accept-package-agreements
+    Ok "windows terminal"
+} else {
+    Skip "windows terminal"
+}
+
+# ── WSL2 (optional prompt) ────────────────────────────────────────────────────
+Step "Checking WSL2..."
+$wslStatus = wsl --status 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  WSL2 not configured. To install Ubuntu on WSL2 run:" -ForegroundColor Yellow
+    Write-Host "    wsl --install -d Ubuntu-24.04" -ForegroundColor Yellow
+} else {
+    Skip "wsl2"
+}
+
+# ── GIT CONFIG ────────────────────────────────────────────────────────────────
+Step "Git global config..."
+git config --global core.editor "code --wait"
+git config --global pull.rebase true
+git config --global init.defaultBranch main
+git config --global push.autoSetupRemote true
+git config --global core.autocrlf true
+Ok "git config"
+
+# ── FINAL ─────────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Green
+Write-Host " Warble dev toolchain installed." -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host " Reload shell:  . `$PROFILE" -ForegroundColor Cyan
+Write-Host " Auth GCP:      gcloud auth login" -ForegroundColor Cyan
+Write-Host " Auth GitHub:   gh auth login" -ForegroundColor Cyan
+Write-Host " Start Ollama:  ollama serve" -ForegroundColor Cyan
+Write-Host " Pull model:    ollama pull llama3.2" -ForegroundColor Cyan
+Write-Host " Launch k9s:    k9s" -ForegroundColor Cyan
+Write-Host ""
+Write-Host " NOTE: Restart your terminal for PATH changes to take effect." -ForegroundColor Yellow
+Write-Host ""
