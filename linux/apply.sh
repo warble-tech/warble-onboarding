@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run as: sudo bash apply.sh
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -40,10 +40,16 @@ fi
 
 echo ""
 echo "Done. Current temps:"
-sensors | grep -E "Package|Core 0"
+if command -v sensors &>/dev/null; then
+    sensors | grep -E "Package|Core 0" || true
+else
+    echo "    (sensors not installed — run: sudo apt install lm-sensors)"
+fi
 echo ""
 echo "Current governor:"
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 echo ""
 echo "Turbo disabled:"
-cat /sys/devices/system/cpu/intel_pstate/no_turbo
+[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ] \
+    && cat /sys/devices/system/cpu/intel_pstate/no_turbo \
+    || echo "    (intel_pstate not available)"

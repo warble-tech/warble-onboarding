@@ -46,8 +46,8 @@ brew "python@3.12"
 brew "uv"             # fast Python package/project manager (astral.sh)
 
 # ── CONTAINER TOOLING ─────────────────────────────────────────────────────────
-cask "rancher"        # Rancher Desktop — containerd + nerdctl (Docker alternative)
-# nerdctl is bundled with Rancher Desktop at ~/.rd/bin/nerdctl
+cask "docker"         # Docker Desktop (CLI mode)
+brew "kind"           # Kubernetes in Docker
 
 # ── KUBERNETES ────────────────────────────────────────────────────────────────
 brew "kubectl"
@@ -61,6 +61,8 @@ brew "hashicorp/tap/terraform"    # Terraform (legacy compat)
 
 # ── CLOUD CLIs ────────────────────────────────────────────────────────────────
 cask "google-cloud-sdk"           # gcloud, gsutil, bq — includes GKE auth plugin
+brew "awscli"                     # AWS CLI v2
+brew "azure-cli"                  # Azure CLI
 
 # ── AI / LLM ─────────────────────────────────────────────────────────────────
 brew "ollama"         # local LLM runtime
