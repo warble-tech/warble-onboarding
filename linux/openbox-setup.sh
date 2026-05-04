@@ -180,7 +180,7 @@ cat > "$OBOX_CFG/menu.xml" << 'MENUEOF'
   <menu id="dev-menu" label="Dev Tools">
     <item label="htop"><action name="Execute"><command>xfce4-terminal -e htop</command></action></item>
     <item label="ncdu"><action name="Execute"><command>xfce4-terminal -e ncdu</command></action></item>
-    <item label="Docker (nerdctl ps)"><action name="Execute"><command>xfce4-terminal -e "nerdctl ps"</command></action></item>
+    <item label="Docker (docker ps)"><action name="Execute"><command>xfce4-terminal -e "docker ps"</command></action></item>
     <item label="Display settings"><action name="Execute"><command>arandr</command></action></item>
   </menu>
   <separator/>

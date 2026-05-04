@@ -105,24 +105,22 @@ if ! grep -q 'go/bin' "$ZSHRC"; then
 fi
 ok "go $(go version 2>/dev/null | awk '{print $3}')"
 
-# ── RANCHER DESKTOP (nerdctl) aliases ─────────────────────────────────────────
-step "Adding nerdctl aliases..."
-if ! grep -q 'nerdctl aliased' "$ZSHRC"; then
-    cat >> "$ZSHRC" << 'ALIAS'
+# ── AWS CLI v2 ────────────────────────────────────────────────────────────────
+step "Installing AWS CLI v2..."
+if ! command -v aws &>/dev/null; then
+    brew install awscli
+    ok "aws $(aws --version 2>&1 | head -1)"
+else
+    skip "aws cli"
+fi
 
-# Rancher Desktop — nerdctl aliased as docker
-export PATH="$HOME/.rd/bin:$PATH"
-alias docker="nerdctl"
-alias docker-compose="nerdctl compose"
-alias d="nerdctl"
-alias dc="nerdctl compose"
-alias dps="nerdctl ps"
-alias dimg="nerdctl images"
-alias dlogs="nerdctl logs -f"
-alias dexec="nerdctl exec -it"
-alias dprune="nerdctl system prune -f"
-ALIAS
-    ok "nerdctl aliases"
+# ── AZURE CLI ─────────────────────────────────────────────────────────────────
+step "Installing Azure CLI..."
+if ! command -v az &>/dev/null; then
+    brew install azure-cli
+    ok "az $(az version --query '"azure-cli"' -o tsv 2>/dev/null)"
+else
+    skip "azure cli"
 fi
 
 # ── GCLOUD COMPONENTS ─────────────────────────────────────────────────────────
@@ -149,10 +147,11 @@ echo "════════════════════════�
 echo ""
 echo " Reload shell:  source ~/.zshrc"
 echo " Auth GCP:      gcloud auth login"
+echo " Auth AWS:      aws configure"
+echo " Auth Azure:    az login"
 echo " Auth GitHub:   gh auth login"
+echo " Docker:        open Docker.app from Applications"
 echo " Start Ollama:  ollama serve"
 echo " Pull model:    ollama pull llama3.2"
 echo " Launch k9s:    k9s"
-echo ""
-echo " Rancher Desktop: launch from Applications, choose containerd."
 echo ""

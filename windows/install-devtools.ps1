@@ -62,10 +62,8 @@ foreach ($tool in $cliTools) {
     }
 }
 
-# tldr via npm (installed after node)
-# yq via scoop
 if (-not (Get-Command yq -ErrorAction SilentlyContinue)) {
-    scoop install yq
+    winget install --id MikeFarah.yq --silent --accept-source-agreements --accept-package-agreements
     Ok "yq"
 } else {
     Skip "yq"
@@ -111,40 +109,13 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     Skip "python"
 }
 
-# ── RANCHER DESKTOP (nerdctl) ─────────────────────────────────────────────────
-Step "Installing Rancher Desktop..."
-if (-not (Get-Command rdctl -ErrorAction SilentlyContinue)) {
-    winget install --id SUSE.RancherDesktop --silent --accept-source-agreements --accept-package-agreements
-    Ok "rancher desktop"
-    Write-Host "  First launch: choose containerd (not dockerd) in settings." -ForegroundColor Yellow
-    Write-Host "  Add `$env:USERPROFILE\.rd\bin to PATH after first launch." -ForegroundColor Yellow
+# ── DOCKER DESKTOP ────────────────────────────────────────────────────────────
+Step "Installing Docker Desktop..."
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    winget install --id Docker.DockerDesktop --silent --accept-source-agreements --accept-package-agreements
+    Ok "docker desktop (launch from Start Menu to start the daemon)"
 } else {
-    Skip "rancher desktop"
-}
-
-# nerdctl aliases (PowerShell profile)
-Step "Adding nerdctl aliases to PowerShell profile..."
-$profilePath = $PROFILE.CurrentUserAllHosts
-if (-not (Test-Path $profilePath)) { New-Item -Path $profilePath -ItemType File -Force | Out-Null }
-$aliasBlock = @'
-
-# Rancher Desktop — nerdctl aliased as docker
-$env:PATH = "$env:USERPROFILE\.rd\bin;$env:PATH"
-function docker         { nerdctl @args }
-function docker-compose { nerdctl compose @args }
-function d              { nerdctl @args }
-function dc             { nerdctl compose @args }
-function dps            { nerdctl ps @args }
-function dimg           { nerdctl images @args }
-function dlogs          { nerdctl logs -f @args }
-function dexec          { nerdctl exec -it @args }
-function dprune         { nerdctl system prune -f @args }
-'@
-if (-not (Select-String -Path $profilePath -Pattern "nerdctl aliased" -Quiet -ErrorAction SilentlyContinue)) {
-    Add-Content -Path $profilePath -Value $aliasBlock
-    Ok "nerdctl aliases → $profilePath"
-} else {
-    Skip "nerdctl aliases"
+    Skip "docker desktop"
 }
 
 # ── KUBECTL ───────────────────────────────────────────────────────────────────
@@ -159,8 +130,8 @@ if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
 # ── HELM ──────────────────────────────────────────────────────────────────────
 Step "Installing Helm..."
 if (-not (Get-Command helm -ErrorAction SilentlyContinue)) {
-    scoop install helm
-    Ok "helm $(helm version --short 2>$null)"
+    winget install --id Helm.Helm --silent --accept-source-agreements --accept-package-agreements
+    Ok "helm"
 } else {
     Skip "helm"
 }
@@ -195,7 +166,7 @@ if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
 # ── K9S ───────────────────────────────────────────────────────────────────────
 Step "Installing k9s (Kubernetes TUI)..."
 if (-not (Get-Command k9s -ErrorAction SilentlyContinue)) {
-    scoop install k9s
+    winget install --id Derailed.k9s --silent --accept-source-agreements --accept-package-agreements
     Ok "k9s"
 } else {
     Skip "k9s"
@@ -224,10 +195,28 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     Skip "gh"
 }
 
+# ── AWS CLI v2 ────────────────────────────────────────────────────────────────
+Step "Installing AWS CLI v2..."
+if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+    winget install --id Amazon.AWSCLI --silent --accept-source-agreements --accept-package-agreements
+    Ok "aws cli"
+} else {
+    Skip "aws cli"
+}
+
+# ── AZURE CLI ─────────────────────────────────────────────────────────────────
+Step "Installing Azure CLI..."
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+    winget install --id Microsoft.AzureCLI --silent --accept-source-agreements --accept-package-agreements
+    Ok "azure cli"
+} else {
+    Skip "azure cli"
+}
+
 # ── LAZYGIT ───────────────────────────────────────────────────────────────────
 Step "Installing lazygit..."
 if (-not (Get-Command lazygit -ErrorAction SilentlyContinue)) {
-    scoop install lazygit
+    winget install --id JesseDuffield.lazygit --silent --accept-source-agreements --accept-package-agreements
     Ok "lazygit"
 } else {
     Skip "lazygit"
@@ -278,7 +267,10 @@ Write-Host "================================================" -ForegroundColor G
 Write-Host ""
 Write-Host " Reload shell:  . `$PROFILE" -ForegroundColor Cyan
 Write-Host " Auth GCP:      gcloud auth login" -ForegroundColor Cyan
+Write-Host " Auth AWS:      aws configure" -ForegroundColor Cyan
+Write-Host " Auth Azure:    az login" -ForegroundColor Cyan
 Write-Host " Auth GitHub:   gh auth login" -ForegroundColor Cyan
+Write-Host " Docker:        launch Docker Desktop from Start Menu" -ForegroundColor Cyan
 Write-Host " Start Ollama:  ollama serve" -ForegroundColor Cyan
 Write-Host " Pull model:    ollama pull llama3.2" -ForegroundColor Cyan
 Write-Host " Launch k9s:    k9s" -ForegroundColor Cyan

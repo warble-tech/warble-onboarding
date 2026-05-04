@@ -75,38 +75,34 @@ else
     skip "uv"
 fi
 
-# ── DOCKER / NERDCTL (Rancher Desktop) ───────────────────────────────────────
-step "Installing Rancher Desktop (nerdctl)..."
-RANCHER_VERSION="1.22.0"
-if ! which rdctl &>/dev/null; then
-    curl -fsSL "https://github.com/rancher-sandbox/rancher-desktop/releases/download/v${RANCHER_VERSION}/rancher-desktop-${RANCHER_VERSION}-amd64.deb" -o /tmp/rancher.deb
-    sudo apt-get install -y /tmp/rancher.deb
-    rm /tmp/rancher.deb
-    ok "rancher desktop $RANCHER_VERSION"
+# ── DOCKER CE ─────────────────────────────────────────────────────────────────
+step "Installing Docker CE..."
+if ! command -v docker &>/dev/null; then
+    # remove any conflicting old source file
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+        -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null << EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: ${CODENAME}
+Components: stable
+Architectures: ${ARCH}
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+    sudo apt-get update -qq
+    sudo apt-get install -y \
+        docker-ce docker-ce-cli containerd.io \
+        docker-buildx-plugin docker-compose-plugin
+    sudo usermod -aG docker "$USER"
+    ok "docker ce (re-login or 'newgrp docker' to use without sudo)"
 else
-    skip "rancher desktop"
+    skip "docker"
 fi
-
-# nerdctl aliases
-for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
-    if [ -f "$rc" ] && ! grep -q "nerdctl aliased" "$rc"; then
-        cat >> "$rc" << 'ALIAS'
-
-# Rancher Desktop — nerdctl aliased as docker
-export PATH="$HOME/.rd/bin:$PATH"
-alias docker="nerdctl"
-alias docker-compose="nerdctl compose"
-alias d="nerdctl"
-alias dc="nerdctl compose"
-alias dps="nerdctl ps"
-alias dimg="nerdctl images"
-alias dlogs="nerdctl logs -f"
-alias dexec="nerdctl exec -it"
-alias dprune="nerdctl system prune -f"
-ALIAS
-        ok "nerdctl aliases → $rc"
-    fi
-done
 
 # ── KUBECTL ───────────────────────────────────────────────────────────────────
 step "Installing kubectl..."
@@ -118,6 +114,19 @@ if ! which kubectl &>/dev/null; then
     ok "kubectl $K8S_VER"
 else
     skip "kubectl $(kubectl version --client --short 2>/dev/null | head -1)"
+fi
+
+# ── KIND ──────────────────────────────────────────────────────────────────────
+step "Installing kind..."
+if ! command -v kind &>/dev/null; then
+    KIND_VER=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest \
+        | grep '"tag_name"' | cut -d'"' -f4)
+    curl -fsSL "https://kind.sigs.k8s.io/dl/${KIND_VER}/kind-linux-amd64" -o /tmp/kind
+    sudo install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
+    rm /tmp/kind
+    ok "kind $KIND_VER"
+else
+    skip "kind $(kind version 2>/dev/null | head -1)"
 fi
 
 # ── HELM ──────────────────────────────────────────────────────────────────────
@@ -237,6 +246,8 @@ echo ""
 echo " Reload shell:  source ~/.zshrc"
 echo " Auth GCP:      gcloud auth login"
 echo " Auth GitHub:   gh auth login"
+echo " Docker group:  newgrp docker   (or re-login)"
+echo " List clusters: kind get clusters"
 echo " Start Ollama:  ollama serve"
 echo " Pull model:    ollama pull llama3.2"
 echo " Launch k9s:    k9s"
