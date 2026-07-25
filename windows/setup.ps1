@@ -25,8 +25,8 @@ $allTools = [ordered]@{
     go         = @{ label = "Go 1.24";                                         default = $true  }
     node       = @{ label = "Node.js 22 LTS";                                  default = $true  }
     uv         = @{ label = "Python uv (fast package manager)";                default = $true  }
-    docker     = @{ label = "Docker Desktop";                                  default = $true  }
-    kind       = @{ label = "kind (Kubernetes in Docker)";                     default = $true  }
+    docker     = @{ label = "Docker Desktop (optional; off by default)";       default = $false }
+    kind       = @{ label = "kind (needs a container runtime if local)";       default = $false }
     kubectl    = @{ label = "kubectl";                                         default = $true  }
     helm       = @{ label = "Helm 3";                                          default = $true  }
     k9s        = @{ label = "k9s (Kubernetes TUI)";                            default = $true  }
@@ -40,6 +40,9 @@ $allTools = [ordered]@{
     vscode     = @{ label = "VS Code";                                         default = $true  }
     wt         = @{ label = "Windows Terminal";                                default = $true  }
     ollama     = @{ label = "Ollama (local LLM runtime)";                      default = $false }
+    goose      = @{ label = "Goose CLI (primary coding agent)";                default = $true  }
+    claude     = @{ label = "Claude Code CLI (Anthropic credits)";             default = $true  }
+    browseros  = @{ label = "BrowserOS (agentic browser installer)";           default = $true  }
     gitcfg     = @{ label = "Git global config (editor, rebase, branch)";      default = $true  }
 }
 
@@ -218,6 +221,45 @@ if (Has "ollama") {
     Write-Host "  Pull a model:  ollama pull llama3.2" -ForegroundColor Yellow
 }
 
+# ── GOOSE CLI ────────────────────────────────────────────────────────────────
+if (Has "goose") {
+    Step "Installing Goose CLI..."
+    if (Get-Command goose -ErrorAction SilentlyContinue) {
+        Skip "goose"
+    } else {
+        $env:CONFIGURE = "false"
+        curl.exe -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
+        Ok "goose CLI (configure later: goose configure)"
+    }
+}
+
+# ── CLAUDE CODE (Anthropic) ──────────────────────────────────────────────────
+if (Has "claude") {
+    Step "Installing Claude Code CLI..."
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        Skip "claude"
+    } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+        npm install -g @anthropic-ai/claude-code@latest
+        Ok "claude (Anthropic Claude Code)"
+    } else {
+        Warn "npm not found — install Node first, then: npm i -g @anthropic-ai/claude-code"
+    }
+}
+
+# ── BROWSEROS ────────────────────────────────────────────────────────────────
+if (Has "browseros") {
+    Step "BrowserOS..."
+    $bos = "$env:LOCALAPPDATA\BrowserOS\BrowserOS.exe"
+    if (Test-Path $bos) {
+        Skip "BrowserOS"
+    } else {
+        Write-Host "  Download: https://files.browseros.com/download/BrowserOS_installer.exe" -ForegroundColor Yellow
+        Write-Host "  Opening download page..." -ForegroundColor Yellow
+        Start-Process "https://files.browseros.com/download/BrowserOS_installer.exe"
+        Ok "BrowserOS installer launched (complete UI install)"
+    }
+}
+
 # ── GIT CONFIG ───────────────────────────────────────────────────────────────
 if (Has "gitcfg") {
     Step "Git global config..."
@@ -241,7 +283,11 @@ Write-Host "  Auth GCP:      gcloud auth login"
 Write-Host "  Auth AWS:      aws configure"
 Write-Host "  Auth Azure:    az login"
 Write-Host "  Auth GitHub:   gh auth login"
-Write-Host "  Docker:        launch Docker Desktop from Start Menu"
-Write-Host "  kind cluster:  kind create cluster"
+Write-Host "  Goose:         goose configure   # xAI + Anthropic"
+Write-Host "  Claude Code:   claude            # Anthropic credits"
+Write-Host "  BrowserOS:     finish installer; wire API keys"
+Write-Host "  Docker:        OFF by default (re-run and enable if needed)"
+Write-Host "  kind cluster:  kind create cluster  # needs container runtime"
 Write-Host "  Launch k9s:    k9s"
+Write-Host "  AI guide:      warble-onboarding/ai/README.md"
 Write-Host ""

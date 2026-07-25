@@ -75,18 +75,19 @@ else
     skip "uv"
 fi
 
-# ── DOCKER CE ─────────────────────────────────────────────────────────────────
-step "Installing Docker CE..."
-if ! command -v docker &>/dev/null; then
-    # remove any conflicting old source file
-    sudo rm -f /etc/apt/sources.list.d/docker.list
-
-    sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-        -o /etc/apt/keyrings/docker.asc
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-    sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null << EOF
+# ── CONTAINER RUNTIME (optional — Docker CE off by default) ───────────────────
+# Warble default: no Docker Desktop / Docker CE. Use remote GKE or install
+# Rancher Desktop (nerdctl) when you need local clusters.
+# Opt-in: WARBLE_INSTALL_DOCKER=1 bash install-devtools.sh
+if [ "${WARBLE_INSTALL_DOCKER:-0}" = "1" ]; then
+    step "Installing Docker CE (WARBLE_INSTALL_DOCKER=1)..."
+    if ! command -v docker &>/dev/null; then
+        sudo rm -f /etc/apt/sources.list.d/docker.list
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+            -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null << EOF
 Types: deb
 URIs: https://download.docker.com/linux/ubuntu
 Suites: ${CODENAME}
@@ -94,14 +95,18 @@ Components: stable
 Architectures: ${ARCH}
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
-    sudo apt-get update -qq
-    sudo apt-get install -y \
-        docker-ce docker-ce-cli containerd.io \
-        docker-buildx-plugin docker-compose-plugin
-    sudo usermod -aG docker "$USER"
-    ok "docker ce (re-login or 'newgrp docker' to use without sudo)"
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+            docker-ce docker-ce-cli containerd.io \
+            docker-buildx-plugin docker-compose-plugin
+        sudo usermod -aG docker "$USER"
+        ok "docker ce (re-login or 'newgrp docker')"
+    else
+        skip "docker"
+    fi
 else
-    skip "docker"
+    step "Skipping Docker CE (default). Set WARBLE_INSTALL_DOCKER=1 to install."
+    ok "no local Docker — use GKE / optional Rancher Desktop"
 fi
 
 # ── KUBECTL ───────────────────────────────────────────────────────────────────
@@ -194,6 +199,60 @@ else
     skip "ollama"
 fi
 
+# ── GOOSE (primary coding agent — xAI / Anthropic / multi-provider) ───────────
+step "Installing Goose CLI..."
+if ! command -v goose &>/dev/null; then
+    curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+        | CONFIGURE=false bash
+    # ensure ~/.local/bin on PATH
+    grep -q '\.local/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+    grep -q '\.local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    export PATH="$HOME/.local/bin:$PATH"
+    ok "goose $(goose --version 2>/dev/null | head -1 || echo installed)"
+    echo "    Configure:  goose configure   # pick xAI (Grok) and/or Anthropic"
+else
+    skip "goose $(goose --version 2>/dev/null | head -1)"
+fi
+
+# ── CLAUDE CODE (Anthropic CLI — use existing Anthropic credits) ─────────────
+step "Installing Claude Code CLI (Anthropic)..."
+if ! command -v claude &>/dev/null; then
+    # needs node/npm from nvm
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    if command -v npm &>/dev/null; then
+        npm install -g @anthropic-ai/claude-code@latest
+        ok "claude (Anthropic Claude Code)"
+        echo "    Auth:       claude   # or set ANTHROPIC_API_KEY"
+    else
+        echo "  ${YELLOW}npm not available yet — re-run after nvm/node, or: npm i -g @anthropic-ai/claude-code${NC}"
+    fi
+else
+    skip "claude"
+fi
+
+# ── BROWSEROS (agentic browser) ───────────────────────────────────────────────
+step "Installing BrowserOS (agentic Chromium)..."
+if [ ! -d /opt/browseros ] && [ ! -f /usr/bin/browseros ] && ! command -v browseros &>/dev/null \
+    && [ ! -f "$HOME/.local/share/BrowserOS/BrowserOS" ] \
+    && [ ! -f /usr/share/applications/browseros.desktop ]; then
+    DEB_URL="https://cdn.browseros.com/download/BrowserOS.deb"
+    TMP_DEB="/tmp/BrowserOS.deb"
+    if curl -fsSL "$DEB_URL" -o "$TMP_DEB"; then
+        sudo apt-get install -y "$TMP_DEB" || sudo dpkg -i "$TMP_DEB" || true
+        sudo apt-get install -f -y 2>/dev/null || true
+        rm -f "$TMP_DEB"
+        ok "BrowserOS (deb)"
+        echo "    Launch from app menu; connect xAI / Anthropic / Ollama keys in settings"
+    else
+        echo "  ${YELLOW}deb download failed — install AppImage manually:${NC}"
+        echo "    curl -fL -o ~/BrowserOS.AppImage https://files.browseros.com/download/BrowserOS.AppImage"
+        echo "    chmod +x ~/BrowserOS.AppImage && ~/BrowserOS.AppImage"
+    fi
+else
+    skip "BrowserOS"
+fi
+
 # ── GITHUB CLI ────────────────────────────────────────────────────────────────
 step "Installing GitHub CLI..."
 if ! which gh &>/dev/null; then
@@ -246,9 +305,13 @@ echo ""
 echo " Reload shell:  source ~/.zshrc"
 echo " Auth GCP:      gcloud auth login"
 echo " Auth GitHub:   gh auth login"
-echo " Docker group:  newgrp docker   (or re-login)"
-echo " List clusters: kind get clusters"
+echo " Goose setup:   goose configure   # xAI + Anthropic providers"
+echo " Claude Code:   claude            # Anthropic CLI credits"
+echo " BrowserOS:     open from apps; wire API keys"
+echo " Docker:        skipped by default (WARBLE_INSTALL_DOCKER=1 to install)"
+echo " List clusters: kind get clusters  # needs a container runtime if local"
 echo " Start Ollama:  ollama serve"
 echo " Pull model:    ollama pull llama3.2"
 echo " Launch k9s:    k9s"
+echo " AI guide:      warble-onboarding/ai/README.md"
 echo ""

@@ -130,6 +130,45 @@ if which gcloud &>/dev/null; then
     ok "gke-gcloud-auth-plugin"
 fi
 
+# ── GOOSE CLI ─────────────────────────────────────────────────────────────────
+step "Installing Goose CLI..."
+if ! command -v goose &>/dev/null; then
+    curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+        | CONFIGURE=false bash
+    grep -q '\.local/bin' "$ZSHRC" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$ZSHRC"
+    export PATH="$HOME/.local/bin:$PATH"
+    ok "goose CLI"
+    echo "    Configure: goose configure  # xAI Grok and/or Anthropic"
+else
+    skip "goose"
+fi
+
+# ── CLAUDE CODE (Anthropic CLI credits) ───────────────────────────────────────
+step "Installing Claude Code CLI..."
+if ! command -v claude &>/dev/null; then
+    export NVM_DIR="$HOME/.nvm"
+    NVM_SCRIPT="$(brew --prefix nvm)/nvm.sh"
+    [ -s "$NVM_SCRIPT" ] && . "$NVM_SCRIPT"
+    if command -v npm &>/dev/null; then
+        npm install -g @anthropic-ai/claude-code@latest
+        ok "claude (Anthropic Claude Code)"
+    else
+        echo "  ${YELLOW}npm missing — nvm install 22 then: npm i -g @anthropic-ai/claude-code${NC}"
+    fi
+else
+    skip "claude"
+fi
+
+# ── BROWSEROS ─────────────────────────────────────────────────────────────────
+step "BrowserOS (agentic browser)..."
+if [ ! -d "/Applications/BrowserOS.app" ]; then
+    echo "  Download DMG: https://files.browseros.com/download/BrowserOS.dmg"
+    echo "  Or open:      open https://browseros.com"
+    echo "  ${YELLOW}Install BrowserOS.app manually (not distributed via brew yet)${NC}"
+else
+    skip "BrowserOS.app"
+fi
+
 # ── GIT CONFIG ────────────────────────────────────────────────────────────────
 step "Git global config..."
 git config --global core.editor "code --wait"
@@ -150,8 +189,13 @@ echo " Auth GCP:      gcloud auth login"
 echo " Auth AWS:      aws configure"
 echo " Auth Azure:    az login"
 echo " Auth GitHub:   gh auth login"
-echo " Docker:        open Docker.app from Applications"
+echo " Goose:         goose configure   # xAI + Anthropic"
+echo " Claude Code:   claude            # Anthropic credits"
+echo " BrowserOS:     install DMG if needed; wire API keys"
+echo " Containers:    Docker Desktop NOT installed by default"
+echo "                Optional: brew install --cask rancher  # or docker"
 echo " Start Ollama:  ollama serve"
 echo " Pull model:    ollama pull llama3.2"
 echo " Launch k9s:    k9s"
+echo " AI guide:      warble-onboarding/ai/README.md"
 echo ""
