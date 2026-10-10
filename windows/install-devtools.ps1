@@ -1,15 +1,19 @@
 # warble-onboarding/windows/install-devtools.ps1
-# Full dev toolchain for Warble engineers on Windows 11
-# Run as: PowerShell -ExecutionPolicy Bypass -File install-devtools.ps1
+# Non-interactive dev toolchain for Warble engineers on Windows 11.
+# Prefer the interactive windows/setup.ps1 (documented in README.md); this
+# script is kept for unattended installs.
+# Run as: PowerShell -ExecutionPolicy Bypass -File install-devtools.ps1 [-WithDocker]
+# Docker Desktop is OFF by default (Warble policy) — pass -WithDocker to opt in.
 # Idempotent — safe to re-run
 #Requires -RunAsAdministrator
+param([switch]$WithDocker)
 
 $ErrorActionPreference = "Stop"
 
 function Step  { param($msg) Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok    { param($msg) Write-Host "  [OK] $msg" -ForegroundColor Green }
 function Skip  { param($msg) Write-Host "  [--] $msg (already installed)" -ForegroundColor Yellow }
-function Winget { param([string[]]$args) winget install --accept-source-agreements --accept-package-agreements @args }
+function Winget { param([Parameter(Mandatory)][string]$Id) winget install --id $Id --exact --silent --accept-source-agreements --accept-package-agreements }
 
 # ── WINGET BOOTSTRAP ─────────────────────────────────────────────────────────
 Step "Checking winget..."
@@ -70,15 +74,14 @@ if (-not (Get-Command yq -ErrorAction SilentlyContinue)) {
 }
 
 # ── GO ────────────────────────────────────────────────────────────────────────
-Step "Installing Go 1.24..."
-$GoVersion = "1.24.2"
-if (-not (Get-Command go -ErrorAction SilentlyContinue) -or -not (go version 2>$null | Select-String $GoVersion)) {
-    winget install --id GoLang.Go --version $GoVersion --silent --accept-source-agreements --accept-package-agreements
+Step "Installing Go (latest stable via winget)..."
+if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    winget install --id GoLang.Go --exact --silent --accept-source-agreements --accept-package-agreements
     $env:PATH = $env:PATH + ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"
     [System.Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
-    Ok "go $GoVersion"
+    Ok "go"
 } else {
-    Skip "go $GoVersion"
+    Skip "go $(go version 2>$null)"
 }
 
 # ── NODE.JS (via nvm-windows) ─────────────────────────────────────────────────
@@ -109,13 +112,17 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     Skip "python"
 }
 
-# ── DOCKER DESKTOP ────────────────────────────────────────────────────────────
-Step "Installing Docker Desktop..."
-if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    winget install --id Docker.DockerDesktop --silent --accept-source-agreements --accept-package-agreements
-    Ok "docker desktop (launch from Start Menu to start the daemon)"
+# ── DOCKER DESKTOP (optional — off by default) ───────────────────────────────
+if ($WithDocker) {
+    Step "Installing Docker Desktop (-WithDocker)..."
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        winget install --id Docker.DockerDesktop --silent --accept-source-agreements --accept-package-agreements
+        Ok "docker desktop (launch from Start Menu to start the daemon)"
+    } else {
+        Skip "docker desktop"
+    }
 } else {
-    Skip "docker desktop"
+    Step "Skipping Docker Desktop (default). Re-run with -WithDocker to install."
 }
 
 # ── KUBECTL ───────────────────────────────────────────────────────────────────
@@ -270,7 +277,7 @@ Write-Host " Auth GCP:      gcloud auth login" -ForegroundColor Cyan
 Write-Host " Auth AWS:      aws configure" -ForegroundColor Cyan
 Write-Host " Auth Azure:    az login" -ForegroundColor Cyan
 Write-Host " Auth GitHub:   gh auth login" -ForegroundColor Cyan
-Write-Host " Docker:        launch Docker Desktop from Start Menu" -ForegroundColor Cyan
+Write-Host " Docker:        off by default (re-run with -WithDocker)" -ForegroundColor Cyan
 Write-Host " Start Ollama:  ollama serve" -ForegroundColor Cyan
 Write-Host " Pull model:    ollama pull llama3.2" -ForegroundColor Cyan
 Write-Host " Launch k9s:    k9s" -ForegroundColor Cyan

@@ -12,6 +12,12 @@ skip() { echo -e "  ${YELLOW}–${NC} $1 (already installed)"; }
 
 ARCH=$(dpkg --print-architecture)
 CODENAME=$(. /etc/os-release; echo "$VERSION_CODENAME")
+# Map dpkg arch to the names used by upstream release assets
+case "$ARCH" in
+    amd64) BIN_ARCH=amd64; LG_ARCH=x86_64 ;;
+    arm64) BIN_ARCH=arm64; LG_ARCH=arm64 ;;
+    *) echo "Unsupported architecture: $ARCH (expected amd64 or arm64)"; exit 1 ;;
+esac
 
 step "Updating apt..."
 sudo apt-get update -qq
@@ -25,8 +31,12 @@ sudo apt-get install -y \
     htop ncdu iotop nethogs \
     ripgrep fd-find bat tldr \
     tmux zsh fzf direnv \
-    python3 python3-pip python3-venv \
-    2>/dev/null
+    python3 python3-pip python3-venv
+
+# Ubuntu ships fd/bat as fdfind/batcat — expose the upstream names
+mkdir -p "$HOME/.local/bin"
+command -v fdfind &>/dev/null && ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+command -v batcat &>/dev/null && ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
 ok "core tools"
 
 # ── ZSH + OH-MY-ZSH ──────────────────────────────────────────────────────────
@@ -40,10 +50,10 @@ fi
 sudo chsh -s "$(which zsh)" "$USER" 2>/dev/null || true
 
 # ── GO ────────────────────────────────────────────────────────────────────────
-step "Installing Go 1.24..."
-GO_VERSION="1.24.2"
+GO_VERSION="1.27.2"
+step "Installing Go $GO_VERSION..."
 if ! go version 2>/dev/null | grep -q "$GO_VERSION"; then
-    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${BIN_ARCH}.tar.gz" -o /tmp/go.tar.gz
     sudo rm -rf /usr/local/go
     sudo tar -C /usr/local -xzf /tmp/go.tar.gz
     rm /tmp/go.tar.gz
@@ -113,12 +123,12 @@ fi
 step "Installing kubectl..."
 if ! which kubectl &>/dev/null; then
     K8S_VER=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
-    curl -fsSL "https://dl.k8s.io/release/${K8S_VER}/bin/linux/amd64/kubectl" -o /tmp/kubectl
+    curl -fsSL "https://dl.k8s.io/release/${K8S_VER}/bin/linux/${BIN_ARCH}/kubectl" -o /tmp/kubectl
     sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
     rm /tmp/kubectl
     ok "kubectl $K8S_VER"
 else
-    skip "kubectl $(kubectl version --client --short 2>/dev/null | head -1)"
+    skip "kubectl $(kubectl version --client 2>/dev/null | head -1)"
 fi
 
 # ── KIND ──────────────────────────────────────────────────────────────────────
@@ -126,7 +136,7 @@ step "Installing kind..."
 if ! command -v kind &>/dev/null; then
     KIND_VER=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest \
         | grep '"tag_name"' | cut -d'"' -f4)
-    curl -fsSL "https://kind.sigs.k8s.io/dl/${KIND_VER}/kind-linux-amd64" -o /tmp/kind
+    curl -fsSL "https://kind.sigs.k8s.io/dl/${KIND_VER}/kind-linux-${BIN_ARCH}" -o /tmp/kind
     sudo install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
     rm /tmp/kind
     ok "kind $KIND_VER"
@@ -177,7 +187,7 @@ fi
 step "Installing k9s (Kubernetes TUI)..."
 if ! which k9s &>/dev/null; then
     K9S_VER=$(curl -fsSL https://api.github.com/repos/derailed/k9s/releases/latest | jq -r .tag_name)
-    curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VER}/k9s_Linux_amd64.tar.gz" -o /tmp/k9s.tar.gz
+    curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VER}/k9s_Linux_${BIN_ARCH}.tar.gz" -o /tmp/k9s.tar.gz
     sudo tar -C /usr/local/bin -xzf /tmp/k9s.tar.gz k9s
     rm /tmp/k9s.tar.gz
     ok "k9s $K9S_VER"
@@ -268,7 +278,7 @@ fi
 step "Installing lazygit..."
 if ! which lazygit &>/dev/null; then
     LG_VER=$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | jq -r .tag_name | sed 's/v//')
-    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_linux_${LG_ARCH}.tar.gz" -o /tmp/lazygit.tar.gz
     sudo tar -C /usr/local/bin -xzf /tmp/lazygit.tar.gz lazygit
     rm /tmp/lazygit.tar.gz
     ok "lazygit $LG_VER"

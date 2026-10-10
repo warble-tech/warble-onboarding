@@ -17,19 +17,46 @@ Dev toolchain setup for Warble engineers. Pick your platform and run one script.
 
 **Containers:** Docker is **not** installed by default. Use GKE for clusters; opt in to Docker/Rancher only if you need local containers.
 
+## 0. Prerequisites — this repo is private
+
+You need `git` + the GitHub CLI and a logged-in GitHub account **before** cloning
+(the installers below install `gh`, but you need it first to fetch them):
+
+```bash
+# Ubuntu
+sudo apt-get update && sudo apt-get install -y git gh
+# macOS (Homebrew)
+brew install git gh
+```
+
+```powershell
+# Windows (PowerShell)
+winget install --id Git.Git -e
+winget install --id GitHub.cli -e
+# restart the terminal so git / gh are on PATH
+```
+
+Then authenticate (use your Warble GitHub account with access to `warble-tech`):
+
+```bash
+gh auth login
+```
+
 ---
 
 ## Linux (Ubuntu 22.04 / 24.04)
 
 ```bash
-git clone https://github.com/warble-tech/warble-onboarding.git
+gh repo clone warble-tech/warble-onboarding
 cd warble-onboarding/linux
 bash install-devtools.sh
 ```
 
+Prefer a checklist? `bash setup.sh` (whiptail; Docker/kind off by default, Goose / Claude Code / BrowserOS on).
+
 **What it installs:**
 git, curl, jq, ripgrep, fd, bat, fzf, tmux, zsh + oh-my-zsh, direnv,
-Go 1.24, Node 22 (via nvm), Python 3 + uv,
+Go 1.27, Node 22 (via nvm), Python 3 + uv,
 kubectl, helm, k9s, kind (optional runtime),
 OpenTofu, Terraform, gcloud CLI, Ollama, GitHub CLI, lazygit, VS Code,
 **Goose CLI**, **Claude Code**, **BrowserOS**
@@ -59,10 +86,12 @@ sudo bash linux/apply.sh
 ## macOS (Apple Silicon + Intel)
 
 ```bash
-git clone https://github.com/warble-tech/warble-onboarding.git
+gh repo clone warble-tech/warble-onboarding
 cd warble-onboarding/mac
 bash install-devtools.sh
 ```
+
+Prefer a checklist? `bash setup.sh` (whiptail via `newt`; Docker/kind off by default).
 
 Or Brewfile only:
 
@@ -92,7 +121,7 @@ brew install --cask rancher   # preferred local runtime
 Run PowerShell **as Administrator**:
 
 ```powershell
-git clone https://github.com/warble-tech/warble-onboarding.git
+gh repo clone warble-tech/warble-onboarding
 cd warble-onboarding\windows
 PowerShell -ExecutionPolicy Bypass -File setup.ps1
 ```
@@ -156,4 +185,4 @@ k9s
 | Repo | Notes |
 |------|--------|
 | `warble-tech/warble-bootstrap` | **Private** — bootstrap / platform manifests |
-| `warble-tech/warble-onboarding` | This repo (public or team) |
+| `warble-tech/warble-onboarding` | **Private** — this repo (needs `gh auth login` to clone) |

@@ -20,6 +20,12 @@ err()   { echo -e "  ${RED}✗${NC} $1"; }
 
 ARCH=$(dpkg --print-architecture)
 CODENAME=$(. /etc/os-release; echo "$VERSION_CODENAME")
+# Map dpkg arch to the names used by upstream release assets
+case "$ARCH" in
+    amd64) BIN_ARCH=amd64; LG_ARCH=x86_64; AWS_ARCH=x86_64 ;;
+    arm64) BIN_ARCH=arm64; LG_ARCH=arm64;  AWS_ARCH=aarch64 ;;
+    *) echo "Unsupported architecture: $ARCH (expected amd64 or arm64)"; exit 1 ;;
+esac
 
 # ── WHIPTAIL TOOL SELECTION ───────────────────────────────────────────────────
 CHOICES=$(whiptail --title "Warble Dev Toolchain" \
@@ -27,11 +33,11 @@ CHOICES=$(whiptail --title "Warble Dev Toolchain" \
     30 70 22 \
     "core"       "Core CLI tools (git, curl, jq, fzf, tmux…)" ON \
     "zsh"        "Zsh + Oh-My-Zsh"                             ON \
-    "go"         "Go 1.24"                                     ON \
+    "go"         "Go 1.27"                                     ON \
     "node"       "Node.js 22 (via nvm)"                        ON \
     "uv"         "Python uv (fast package manager)"            ON \
-    "docker"     "Docker CE (engine + CLI + compose)"          ON \
-    "kind"       "kind (Kubernetes in Docker)"                 ON \
+    "docker"     "Docker CE (optional; off by default)"        OFF \
+    "kind"       "kind (needs a container runtime)"            OFF \
     "kubectl"    "kubectl"                                     ON \
     "helm"       "Helm 3"                                      ON \
     "k9s"        "k9s (Kubernetes TUI)"                        ON \
@@ -44,6 +50,9 @@ CHOICES=$(whiptail --title "Warble Dev Toolchain" \
     "awscli"     "AWS CLI v2"                                   ON \
     "azurecli"   "Azure CLI"                                   ON \
     "ollama"     "Ollama (local LLM runtime)"                  OFF \
+    "goose"      "Goose CLI (primary coding agent)"            ON \
+    "claude"     "Claude Code CLI (Anthropic credits)"         ON \
+    "browseros"  "BrowserOS (agentic browser)"                 ON \
     "gitcfg"     "Git global config (editor, rebase, branch)"  ON \
     3>&1 1>&2 2>&3) || { echo "Cancelled."; exit 0; }
 
@@ -66,8 +75,12 @@ if has core; then
         ripgrep fd-find bat tldr \
         tmux zsh fzf direnv \
         python3 python3-pip python3-venv \
-        whiptail \
-        2>/dev/null
+        whiptail
+
+    # Ubuntu ships fd/bat as fdfind/batcat — expose the upstream names
+    mkdir -p "$HOME/.local/bin"
+    command -v fdfind &>/dev/null && ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    command -v batcat &>/dev/null && ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
     ok "core tools"
 fi
 
@@ -85,10 +98,10 @@ fi
 
 # ── GO ────────────────────────────────────────────────────────────────────────
 if has go; then
-    GO_VERSION="1.24.2"
+    GO_VERSION="1.27.2"
     step "Installing Go $GO_VERSION…"
     if ! go version 2>/dev/null | grep -q "$GO_VERSION"; then
-        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz
+        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${BIN_ARCH}.tar.gz" -o /tmp/go.tar.gz
         sudo rm -rf /usr/local/go
         sudo tar -C /usr/local -xzf /tmp/go.tar.gz
         rm /tmp/go.tar.gz
@@ -165,7 +178,7 @@ if has kind; then
     if ! command -v kind &>/dev/null; then
         KIND_VER=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest \
             | grep '"tag_name"' | cut -d'"' -f4)
-        curl -fsSL "https://kind.sigs.k8s.io/dl/${KIND_VER}/kind-linux-amd64" -o /tmp/kind
+        curl -fsSL "https://kind.sigs.k8s.io/dl/${KIND_VER}/kind-linux-${BIN_ARCH}" -o /tmp/kind
         sudo install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
         rm /tmp/kind
         ok "kind $KIND_VER"
@@ -179,12 +192,12 @@ if has kubectl; then
     step "Installing kubectl…"
     if ! command -v kubectl &>/dev/null; then
         K8S_VER=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
-        curl -fsSL "https://dl.k8s.io/release/${K8S_VER}/bin/linux/amd64/kubectl" -o /tmp/kubectl
+        curl -fsSL "https://dl.k8s.io/release/${K8S_VER}/bin/linux/${BIN_ARCH}/kubectl" -o /tmp/kubectl
         sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
         rm /tmp/kubectl
         ok "kubectl $K8S_VER"
     else
-        skip "kubectl $(kubectl version --client --short 2>/dev/null | head -1)"
+        skip "kubectl $(kubectl version --client 2>/dev/null | head -1)"
     fi
 fi
 
@@ -205,7 +218,7 @@ if has k9s; then
     if ! command -v k9s &>/dev/null; then
         K9S_VER=$(curl -fsSL https://api.github.com/repos/derailed/k9s/releases/latest \
             | grep '"tag_name"' | cut -d'"' -f4)
-        curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VER}/k9s_Linux_amd64.tar.gz" \
+        curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VER}/k9s_Linux_${BIN_ARCH}.tar.gz" \
             -o /tmp/k9s.tar.gz
         sudo tar -C /usr/local/bin -xzf /tmp/k9s.tar.gz k9s
         rm /tmp/k9s.tar.gz
@@ -287,7 +300,7 @@ if has lazygit; then
     if ! command -v lazygit &>/dev/null; then
         LG_VER=$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest \
             | grep '"tag_name"' | cut -d'"' -f4 | sed 's/v//')
-        curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_Linux_x86_64.tar.gz" \
+        curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_linux_${LG_ARCH}.tar.gz" \
             -o /tmp/lazygit.tar.gz
         sudo tar -C /usr/local/bin -xzf /tmp/lazygit.tar.gz lazygit
         rm /tmp/lazygit.tar.gz
@@ -319,7 +332,7 @@ fi
 if has awscli; then
     step "Installing AWS CLI v2…"
     if ! command -v aws &>/dev/null; then
-        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o /tmp/awscliv2.zip
         unzip -q /tmp/awscliv2.zip -d /tmp/awscli
         sudo /tmp/awscli/aws/install
         rm -rf /tmp/awscliv2.zip /tmp/awscli
@@ -363,6 +376,57 @@ if has ollama; then
     fi
 fi
 
+# ── GOOSE (primary coding agent) ──────────────────────────────────────────────
+if has goose; then
+    step "Installing Goose CLI…"
+    if ! command -v goose &>/dev/null; then
+        curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+            | CONFIGURE=false bash
+        for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
+            grep -q '\.local/bin' "$rc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc"
+        done
+        export PATH="$HOME/.local/bin:$PATH"
+        ok "goose (configure: goose configure)"
+    else
+        skip "goose"
+    fi
+fi
+
+# ── CLAUDE CODE (Anthropic CLI credits) ───────────────────────────────────────
+if has claude; then
+    step "Installing Claude Code CLI…"
+    if ! command -v claude &>/dev/null; then
+        export NVM_DIR="$HOME/.nvm"
+        # shellcheck source=/dev/null
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        if command -v npm &>/dev/null; then
+            npm install -g @anthropic-ai/claude-code@latest
+            ok "claude (auth: claude)"
+        else
+            warn "npm not available — select Node, re-run, or: npm i -g @anthropic-ai/claude-code"
+        fi
+    else
+        skip "claude"
+    fi
+fi
+
+# ── BROWSEROS (agentic browser) ───────────────────────────────────────────────
+if has browseros; then
+    step "Installing BrowserOS…"
+    if ! command -v browseros &>/dev/null && [ ! -d /opt/browseros ] \
+        && [ ! -f /usr/share/applications/browseros.desktop ]; then
+        if curl -fsSL https://cdn.browseros.com/download/BrowserOS.deb -o /tmp/BrowserOS.deb; then
+            sudo apt-get install -y /tmp/BrowserOS.deb || warn "BrowserOS .deb install failed"
+            rm -f /tmp/BrowserOS.deb
+            ok "BrowserOS (connect xAI / Anthropic / Ollama keys in settings)"
+        else
+            warn "download failed — AppImage: https://files.browseros.com/download/BrowserOS.AppImage"
+        fi
+    else
+        skip "BrowserOS"
+    fi
+fi
+
 # ── GIT CONFIG ────────────────────────────────────────────────────────────────
 if has gitcfg; then
     step "Git global config…"
@@ -385,8 +449,10 @@ echo " Auth GCP:      gcloud auth login"
 echo " Auth AWS:      aws configure"
 echo " Auth Azure:    az login"
 echo " Auth GitHub:   gh auth login"
-echo " Docker group:  newgrp docker   (or re-login)"
-echo " List clusters: kind get clusters"
+echo " Goose:         goose configure   # Anthropic first while credits last, then xAI"
+echo " Claude Code:   claude            # Anthropic CLI credits"
+echo " Docker:        off by default; if selected: newgrp docker (or re-login)"
+echo " List clusters: kind get clusters  # needs a container runtime if local"
 echo " Start Ollama:  ollama serve"
 echo " Launch k9s:    k9s"
 echo ""

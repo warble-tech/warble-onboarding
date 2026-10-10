@@ -44,7 +44,7 @@ Warble already publishes verification TXT records for primary domains via Cloudf
 Default API host is xAI’s public endpoint. Only set if docs or Goose require it:
 
 ```bash
-export XAI_HOST='https://api.x.ai'   # only if needed
+export XAI_HOST='https://api.x.ai/v1'   # only if needed (Goose default)
 ```
 
 ## 3. Billing mode (PAYG)
@@ -68,8 +68,9 @@ For Warble agent work, start with:
 | Model ID | Use |
 |----------|-----|
 | `grok-4.5` | Default coding / agent (Goose) |
-| `grok-4.1-fast` or current “fast” SKU | Cheap drafts, triage, high volume |
+| `grok-4.3` / `grok-code-fast-1` | Cheap drafts, triage, high volume |
 | `grok-build-0.1` | Coding-oriented mid tier if listed in console |
+| `grok-4.7` | Newer flagship at the same in/out list price as 4.5 — evaluate before switching the default |
 
 Confirm exact IDs under Console → Models or [docs.x.ai/developers/models](https://docs.x.ai/developers/models).
 

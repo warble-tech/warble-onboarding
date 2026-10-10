@@ -1,6 +1,6 @@
 # Goose agent setup with xAI Grok (Warble)
 
-Goose is our recommended **local AI agent** (CLI + TUI). It runs on your machine, uses tools (shell, edit, MCP), and bills through your **xAI API key**.
+Goose is our recommended **local AI agent** (CLI + TUI). It runs on your machine, uses tools (shell, edit, MCP), and bills through whichever provider you configure. Warble routing: **Anthropic while org credits last, then xAI** ([05](./05-cost-optimization-2h.md#credit-routing-warble-policy)). This page walks through the xAI provider; for Anthropic see [06](./06-anthropic-cli-credits.md#goose--anthropic).
 
 - Docs: [https://goose-docs.ai](https://goose-docs.ai)  
 - Providers: [https://goose-docs.ai/docs/getting-started/providers](https://goose-docs.ai/docs/getting-started/providers)  
@@ -43,9 +43,9 @@ When prompted:
 ```bash
 # ~/.zshrc or direnv .envrc (never commit secrets)
 export XAI_API_KEY='xai-...'
-export GOOSE_PROVIDER='xai'          # if your goose build uses this name
+export GOOSE_PROVIDER='xai'          # or 'anthropic' while org credits last (see 06)
 export GOOSE_MODEL='grok-4.5'
-# export XAI_HOST='https://api.x.ai'  # only if required
+# export XAI_HOST='https://api.x.ai/v1'  # only if required (Goose default)
 ```
 
 Goose also supports quick setup from an API key in Desktop / first-run UX (detects provider from key shape).
@@ -65,7 +65,7 @@ Keep secrets out of git. Prefer env vars or OS keychain if available.
 | Command | Use |
 |---------|-----|
 | `goose session` / `goose s` | Interactive agent in current directory |
-| `goose tui` | Terminal UI session |
+| `goose term` | Shell integration (`@goose` / `@g` from your prompt) |
 | `goose run -i instructions.md` | Non-interactive from a file |
 | `goose review` | Review current git diff |
 | `goose recipe ...` | Shared recipes / deeplinks |
@@ -87,7 +87,7 @@ Avoid launching Goose from a parent of **many** large clones unless the task nee
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| Provider | xAI | Company standard |
+| Provider | Anthropic while org credits last, then xAI | Warble credit routing ([05](./05-cost-optimization-2h.md#credit-routing-warble-policy)) |
 | Model | `grok-4.5` | Coding + tools |
 | Cheap alternate | `grok-4.3` or `grok-build-0.1` / fast SKU | Bulk / low stakes |
 | Telemetry | off if privacy preferred | `GOOSE_TELEMETRY_ENABLED: false` already used on some boxes |
