@@ -1,4 +1,8 @@
-# warble-onboarding
+<p align="center">
+  <img src="assets/brand/warble-logo.png" alt="Warble Cloud" height="96">
+</p>
+
+<h1 align="center">warble-onboarding</h1>
 
 Dev toolchain setup for Warble engineers. Pick your platform and run one script.
 
@@ -76,7 +80,7 @@ Go, Node 22 (via nvm), Python 3.12 + uv,
 kubectl, helm, k9s, kubectx, kind (needs runtime if used),
 OpenTofu, Terraform, gcloud SDK, Ollama, GitHub CLI, lazygit,
 VS Code, iTerm2, Rectangle, JetBrains Mono Nerd Font,
-**Goose** (cask + CLI), **Claude Code**, BrowserOS (manual DMG if needed)
+**Goose** (cask + CLI), **Claude Code**, **BrowserOS** (cask)
 
 Docker Desktop is **not** in the Brewfile. Optional:
 
@@ -148,6 +152,18 @@ k9s
 | `gh` | GitHub CLI |
 | `lazygit` | Terminal git UI |
 | Docker / Rancher | **Optional** local containers only |
+
+---
+
+## Links
+
+| Tool | Official links |
+|------|----------------|
+| Goose | [goose-docs.ai](https://goose-docs.ai) · [GitHub](https://github.com/aaif-goose/goose) · [Install](https://goose-docs.ai/docs/getting-started/installation) |
+| BrowserOS | [browseros.com](https://browseros.com) · [GitHub](https://github.com/browseros-ai/BrowserOS) · [Docs](https://docs.browseros.com) · [MCP with Claude Code / any MCP client](https://docs.browseros.com/browseros/features/use-with-claude-code) |
+| xAI | [console.x.ai](https://console.x.ai) · [Models & pricing](https://docs.x.ai/developers/models) |
+
+More AI tooling detail: [ai/README.md](./ai/README.md).
 
 ---
 

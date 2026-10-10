@@ -1,3 +1,12 @@
+<a href="https://goose-docs.ai">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/static/img/goose-logo-white.png">
+    <img alt="goose" src="https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/static/img/goose-logo-black.png" height="48">
+  </picture>
+</a>
+
+<sub>goose™ is a trademark of LF Projects, LLC. goose is an Agentic AI Foundation (AAIF) project, originally created by Block. The logo is the unmodified official asset from <a href="https://github.com/aaif-goose/goose">aaif-goose/goose</a>, used to refer to the project per the <a href="https://lfprojects.org/policies/trademark-policy/">LF Projects trademark policy</a>. No endorsement implied.</sub>
+
 # Goose agent setup with xAI Grok (Warble)
 
 Goose is our recommended **local AI agent** (CLI + TUI). It runs on your machine, uses tools (shell, edit, MCP), and bills through your **xAI API key**.
