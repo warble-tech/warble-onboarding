@@ -43,6 +43,11 @@ Warble domains already have Grok / xAI TXT verification on Cloudflare for:
 
 DNS is managed via Cloudflare API; token lives in GCP Secret Manager (`warble-tech` / `cloudflare-api-token`).
 
+## Managing agents
+
+Day-to-day rules for running agents safely (worktrees, permission modes, `AGENTS.md`, MCP and secrets hygiene):
+→ **[08 — Managing AI agents](./08-managing-agents.md)**. The repo root [AGENTS.md](../AGENTS.md) is what agents read in this repo.
+
 ## Related tooling
 
 | Tool | Role |
