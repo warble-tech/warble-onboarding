@@ -143,6 +143,24 @@ else
     skip "goose"
 fi
 
+# ── GOOGLE ANTIGRAVITY (desktop + agy CLI) — optional ─────────────────────────
+# Opt-in: WARBLE_INSTALL_ANTIGRAVITY=1 bash install-devtools.sh  ·  guide: ai/07-antigravity-setup.md
+if [ "${WARBLE_INSTALL_ANTIGRAVITY:-0}" = "1" ]; then
+    step "Installing Google Antigravity..."
+    if [ ! -d "/Applications/Antigravity.app" ]; then
+        brew install --cask antigravity || echo "  cask failed — download: https://antigravity.google/download"
+    else
+        skip "Antigravity.app"
+    fi
+    if ! command -v agy &>/dev/null; then
+        curl -fsSL https://antigravity.google/cli/install.sh | bash
+        export PATH="$HOME/.local/bin:$PATH"
+        ok "agy CLI (sign in on first run: agy)"
+    else
+        skip "agy"
+    fi
+fi
+
 # ── CLAUDE CODE (Anthropic CLI credits) ───────────────────────────────────────
 step "Installing Claude Code CLI..."
 if ! command -v claude &>/dev/null; then
