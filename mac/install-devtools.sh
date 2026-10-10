@@ -180,9 +180,13 @@ fi
 # ── BROWSEROS ─────────────────────────────────────────────────────────────────
 step "BrowserOS (agentic browser)..."
 if [ ! -d "/Applications/BrowserOS.app" ]; then
-    echo "  Download DMG: https://files.browseros.com/download/BrowserOS.dmg"
-    echo "  Or open:      open https://browseros.com"
-    echo "  ${YELLOW}Install BrowserOS.app manually (not distributed via brew yet)${NC}"
+    # Normally installed by the Brewfile (cask "browseros"); retry here if that failed
+    if brew install --cask browseros; then
+        ok "BrowserOS (cask)"
+    else
+        echo "  Download DMG: https://files.browseros.com/download/BrowserOS.dmg"
+        echo "  Docs:         https://docs.browseros.com/browseros/onboarding"
+    fi
 else
     skip "BrowserOS.app"
 fi
@@ -209,7 +213,7 @@ echo " Auth Azure:    az login"
 echo " Auth GitHub:   gh auth login"
 echo " Goose:         goose configure   # xAI + Anthropic"
 echo " Claude Code:   claude            # Anthropic credits"
-echo " BrowserOS:     install DMG if needed; wire API keys"
+echo " BrowserOS:     open BrowserOS.app; wire API keys (docs.browseros.com)"
 echo " Containers:    Docker Desktop NOT installed by default"
 echo "                Optional: brew install --cask rancher  # or docker"
 echo " Start Ollama:  ollama serve"
