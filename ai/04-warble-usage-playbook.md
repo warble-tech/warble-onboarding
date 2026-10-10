@@ -28,6 +28,8 @@ Typical layout after clone:
 
 ## Task → model / tool
 
+Provider routing follows [05 — Credit routing](./05-cost-optimization-2h.md#credit-routing-warble-policy): Anthropic CLI credits first, then xAI. The **Model** column below is the xAI choice when you are on the Grok budget.
+
 | Task | Agent | Model | Notes |
 |------|-------|-------|-------|
 | Feature implementation | Goose | `grok-4.5` | Branch first |

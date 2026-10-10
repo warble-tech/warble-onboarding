@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# warble-onboarding/macos/setup.sh
+# warble-onboarding/mac/setup.sh
 # Interactive installer for Warble dev toolchain on macOS (Apple Silicon + Intel)
 # Run as: bash setup.sh
 # Idempotent — safe to re-run
@@ -33,11 +33,11 @@ CHOICES=$(whiptail --title "Warble Dev Toolchain (macOS)" \
     30 70 22 \
     "core"       "Core CLI tools (git, curl, jq, fzf, tmux…)"  ON \
     "zsh"        "Zsh + Oh-My-Zsh"                              ON \
-    "go"         "Go 1.24"                                      ON \
+    "go"         "Go (latest via Homebrew)"                     ON \
     "node"       "Node.js 22 (via nvm)"                         ON \
     "uv"         "Python uv (fast package manager)"             ON \
-    "docker"     "Docker Desktop (CLI + daemon)"                ON \
-    "kind"       "kind (Kubernetes in Docker)"                  ON \
+    "docker"     "Docker Desktop (optional; off by default)"    OFF \
+    "kind"       "kind (needs a container runtime)"             OFF \
     "kubectl"    "kubectl"                                      ON \
     "helm"       "Helm 3"                                       ON \
     "k9s"        "k9s (Kubernetes TUI)"                         ON \
@@ -50,6 +50,9 @@ CHOICES=$(whiptail --title "Warble Dev Toolchain (macOS)" \
     "lazygit"    "lazygit"                                      ON \
     "vscode"     "VS Code"                                      ON \
     "ollama"     "Ollama (local LLM runtime)"                   OFF \
+    "goose"      "Goose CLI (primary coding agent)"             ON \
+    "claude"     "Claude Code CLI (Anthropic credits)"          ON \
+    "browseros"  "BrowserOS (agentic browser)"                  ON \
     "gitcfg"     "Git global config (editor, rebase, branch)"   ON \
     3>&1 1>&2 2>&3) || { echo "Cancelled."; exit 0; }
 
@@ -148,7 +151,7 @@ if has kubectl; then
     step "Installing kubectl..."
     if ! command -v kubectl &>/dev/null; then
         brew install kubectl
-        ok "kubectl $(kubectl version --client --short 2>/dev/null | head -1)"
+        ok "kubectl $(kubectl version --client 2>/dev/null | head -1)"
     else
         skip "kubectl"
     fi
@@ -278,6 +281,49 @@ if has ollama; then
     fi
 fi
 
+# ── GOOSE (primary coding agent) ──────────────────────────────────────────────
+if has goose; then
+    step "Installing Goose CLI..."
+    if ! command -v goose &>/dev/null; then
+        curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+            | CONFIGURE=false bash
+        grep -q '\.local/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+        export PATH="$HOME/.local/bin:$PATH"
+        ok "goose (configure: goose configure)"
+    else
+        skip "goose"
+    fi
+fi
+
+# ── CLAUDE CODE (Anthropic CLI credits) ───────────────────────────────────────
+if has claude; then
+    step "Installing Claude Code CLI..."
+    if ! command -v claude &>/dev/null; then
+        export NVM_DIR="$HOME/.nvm"
+        # shellcheck source=/dev/null
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        if command -v npm &>/dev/null; then
+            npm install -g @anthropic-ai/claude-code@latest
+            ok "claude (auth: claude)"
+        else
+            echo "  npm not available — select Node, re-run, or: npm i -g @anthropic-ai/claude-code"
+        fi
+    else
+        skip "claude"
+    fi
+fi
+
+# ── BROWSEROS (agentic browser) ───────────────────────────────────────────────
+if has browseros; then
+    step "Installing BrowserOS..."
+    if [ ! -d "/Applications/BrowserOS.app" ]; then
+        brew install --cask browseros
+        ok "BrowserOS (connect xAI / Anthropic / Ollama keys in settings)"
+    else
+        skip "BrowserOS.app"
+    fi
+fi
+
 # ── GIT CONFIG ────────────────────────────────────────────────────────────────
 if has gitcfg; then
     step "Git global config..."
@@ -300,7 +346,9 @@ echo " Auth GCP:      gcloud auth login"
 echo " Auth AWS:      aws configure"
 echo " Auth Azure:    az login"
 echo " Auth GitHub:   gh auth login"
-echo " Docker:        open Docker.app from Applications"
-echo " kind cluster:  kind create cluster"
+echo " Goose:         goose configure   # Anthropic first while credits last, then xAI"
+echo " Claude Code:   claude            # Anthropic CLI credits"
+echo " Docker:        off by default; if selected, open Docker.app"
+echo " kind cluster:  kind create cluster  # needs a container runtime"
 echo " Launch k9s:    k9s"
 echo ""

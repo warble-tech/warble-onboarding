@@ -1,6 +1,6 @@
-# Warble AI Onboarding — Grok (xAI) + Goose
+# Warble AI Onboarding — Anthropic + Grok (xAI) + Goose
 
-We use **xAI Grok** as the primary LLM (console + API) and **[Goose](https://goose-docs.ai)** as the local coding agent.
+Warble routes agent work **Anthropic CLI credits first** (Claude Code / Goose-Anthropic), then **xAI Grok** pay-as-you-go (console + API). **[Goose](https://goose-docs.ai)** is the primary local coding agent on either provider. Single source of truth for routing: [05 — Credit routing](./05-cost-optimization-2h.md#credit-routing-warble-policy).
 
 | Doc | Purpose |
 |-----|---------|

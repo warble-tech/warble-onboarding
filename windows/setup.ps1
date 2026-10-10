@@ -22,7 +22,7 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
 $allTools = [ordered]@{
     core       = @{ label = "Core CLI tools (git, curl, jq, fzf, 7zip...)";  default = $true  }
     ohmyposh   = @{ label = "Oh My Posh (PowerShell prompt)";                 default = $true  }
-    go         = @{ label = "Go 1.24";                                         default = $true  }
+    go         = @{ label = "Go (latest via winget)";                          default = $true  }
     node       = @{ label = "Node.js 22 LTS";                                  default = $true  }
     uv         = @{ label = "Python uv (fast package manager)";                default = $true  }
     docker     = @{ label = "Docker Desktop (optional; off by default)";       default = $false }
@@ -116,7 +116,7 @@ if (Has "ohmyposh") {
 
 # ── GO ───────────────────────────────────────────────────────────────────────
 if (Has "go") {
-    WingetInstall "GoLang.Go" "Go 1.24"
+    WingetInstall "GoLang.Go" "Go"
 }
 
 # ── NODE.JS ───────────────────────────────────────────────────────────────────
@@ -227,9 +227,14 @@ if (Has "goose") {
     if (Get-Command goose -ErrorAction SilentlyContinue) {
         Skip "goose"
     } else {
+        # Official Windows installer (PowerShell) — no Git Bash / WSL needed.
+        # https://goose-docs.ai/docs/getting-started/installation
         $env:CONFIGURE = "false"
-        curl.exe -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
-        Ok "goose CLI (configure later: goose configure)"
+        $gooseInstaller = Join-Path $env:TEMP "download_cli.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1" -OutFile $gooseInstaller
+        & $gooseInstaller
+        Remove-Item $gooseInstaller -ErrorAction SilentlyContinue
+        Ok "goose CLI (restart terminal for PATH; then: goose configure)"
     }
 }
 
@@ -283,7 +288,7 @@ Write-Host "  Auth GCP:      gcloud auth login"
 Write-Host "  Auth AWS:      aws configure"
 Write-Host "  Auth Azure:    az login"
 Write-Host "  Auth GitHub:   gh auth login"
-Write-Host "  Goose:         goose configure   # xAI + Anthropic"
+Write-Host "  Goose:         goose configure   # Anthropic first while credits last, then xAI"
 Write-Host "  Claude Code:   claude            # Anthropic credits"
 Write-Host "  BrowserOS:     finish installer; wire API keys"
 Write-Host "  Docker:        OFF by default (re-run and enable if needed)"

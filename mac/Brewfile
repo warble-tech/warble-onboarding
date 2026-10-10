@@ -4,7 +4,6 @@
 # Install Homebrew first: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # ── TAPS ─────────────────────────────────────────────────────────────────────
-tap "homebrew/bundle"
 tap "hashicorp/tap"
 tap "opentofu/tap"
 
@@ -35,7 +34,7 @@ brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
 # ── GO ────────────────────────────────────────────────────────────────────────
-brew "go"             # installs latest stable (1.24.x)
+brew "go"             # latest stable Go
 
 # ── NODE (via nvm) ────────────────────────────────────────────────────────────
 brew "nvm"
@@ -77,7 +76,6 @@ brew "lazygit"        # terminal UI for git
 cask "visual-studio-code"
 
 # ── FONTS (JetBrains Mono for terminal / VSCode) ──────────────────────────────
-tap "homebrew/cask-fonts"
 cask "font-jetbrains-mono"
 cask "font-jetbrains-mono-nerd-font"
 

@@ -1,6 +1,6 @@
 # xAI Console — pay-as-you-go cost guide (Warble)
 
-**Last verified against public docs:** 2026-07-25  
+**Last verified against public docs:** 2026-10-11  
 **Canonical rates:** [https://docs.x.ai/developers/models](https://docs.x.ai/developers/models)  
 **Product (chat) plans:** [https://x.ai/pricing](https://x.ai/pricing) — *separate from API*
 
@@ -50,6 +50,8 @@ Source: xAI docs Models page. Prefer checking console if numbers diverge.
 | **grok-4.20-*** (≥ 200k) | 1M | $2.50 | $0.40 | $5.00 | |
 | **grok-build-0.1** (&lt; 200k) | 256k | $1.00 | $0.20 | $2.00 | Coding-oriented mid tier |
 | **grok-build-0.1** (≥ 200k) | 256k | $2.00 | $0.40 | $4.00 | |
+
+> As of 2026-10-11 the models page also lists **`grok-4.6`** and **`grok-4.7`** (500k context) at $2.00 in / $0.50 cached / $6.00 out, doubling above 200k. `grok-4.1-fast` is no longer listed.
 
 ### Non-text (if you use Imagine / Voice)
 
