@@ -7,20 +7,11 @@ How we use Grok day-to-day across open-source and enterprise repos.
 Typical layout after clone:
 
 ```text
-~/warble-opensource/          # github.com/warble-tech/*
-  warble-api/
-  warble-app/
-  warble-bootstrap/
-  shrikeops/
-  starling/
-  steadyhelm/
-  frakma-oss/
+~/src/oss/                    # open-source repos
   warble-onboarding/          # this guide lives under ai/
   ...
 
-~/warble-enterprise/          # private product monorepos
-  warble-core/
-  reflexion-ai/
+~/src/internal/               # private product repos
   ...
 ```
 
@@ -45,10 +36,9 @@ Provider routing follows [05 — Credit routing](./05-cost-optimization-2h.md#cr
 
 | Secret / resource | Where |
 |-------------------|--------|
-| Cloudflare API token | GCP SM `warble-tech` / `cloudflare-api-token` |
-| Zone IDs | `cloudflare-zone-id`, `warble-ai-zone-id`, `cloudflare-zone-id-frakma` |
-| xAI API keys | Personal env / team SM (create `xai-api-key` if centralizing) |
-| Grok domain TXT | Cloudflare DNS on `warblecloud.com`, `.ai`, `frakma.io` |
+| DNS / Cloudflare API tokens | Team secret manager (e.g. GCP Secret Manager) — never in git |
+| xAI API keys | Personal env, or team secret manager if centralizing |
+| Grok domain TXT | Your DNS provider |
 
 ## Suggested team conventions
 

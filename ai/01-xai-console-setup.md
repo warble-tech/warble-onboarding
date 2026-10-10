@@ -21,7 +21,7 @@ Content: domain-verification=<hex token>
 
 Warble already publishes verification TXT records for primary domains via Cloudflare. If console still fails:
 
-- Confirm the **exact host** (apex vs `grok.warblecloud.com`).
+- Confirm the **exact host** (apex vs a subdomain such as `grok.example.com`).
 - Wait for DNS (usually minutes on Cloudflare).
 - Re-check with public DNS:  
   `dig TXT warblecloud.com +short` (or Cloudflare dashboard → DNS).

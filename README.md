@@ -22,37 +22,16 @@ Dev toolchain setup for Warble engineers. Pick your platform and run one script.
 
 **Containers:** Docker is **not** installed by default. Use GKE for clusters; opt in to Docker/Rancher only if you need local containers.
 
-## 0. Prerequisites — this repo is private
+## 0. Prerequisites
 
-You need `git` + the GitHub CLI and a logged-in GitHub account **before** cloning
-(the installers below install `gh`, but you need it first to fetch them):
-
-```bash
-# Ubuntu
-sudo apt-get update && sudo apt-get install -y git gh
-# macOS (Homebrew)
-brew install git gh
-```
-
-```powershell
-# Windows (PowerShell)
-winget install --id Git.Git -e
-winget install --id GitHub.cli -e
-# restart the terminal so git / gh are on PATH
-```
-
-Then authenticate (use your Warble GitHub account with access to `warble-tech`):
-
-```bash
-gh auth login
-```
+You only need `git` to clone (on Windows: `winget install --id Git.Git -e`, then restart the terminal).
 
 ---
 
 ## Linux (Ubuntu 22.04 / 24.04)
 
 ```bash
-gh repo clone warble-tech/warble-onboarding
+git clone https://github.com/warble-tech/warble-onboarding.git
 cd warble-onboarding/linux
 bash install-devtools.sh
 ```
@@ -91,7 +70,7 @@ sudo bash linux/apply.sh
 ## macOS (Apple Silicon + Intel)
 
 ```bash
-gh repo clone warble-tech/warble-onboarding
+git clone https://github.com/warble-tech/warble-onboarding.git
 cd warble-onboarding/mac
 bash install-devtools.sh
 ```
@@ -126,7 +105,7 @@ brew install --cask rancher   # preferred local runtime
 Run PowerShell **as Administrator**:
 
 ```powershell
-gh repo clone warble-tech/warble-onboarding
+git clone https://github.com/warble-tech/warble-onboarding.git
 cd warble-onboarding\windows
 PowerShell -ExecutionPolicy Bypass -File setup.ps1
 ```
@@ -147,7 +126,7 @@ wsl --install -d Ubuntu-24.04
 ```bash
 # Authenticate cloud tools
 gcloud auth login
-gcloud config set project warble-tech   # or your project
+gcloud config set project <your-project-id>
 gh auth login
 
 # AI agents
@@ -202,5 +181,4 @@ More AI tooling detail: [ai/README.md](./ai/README.md).
 
 | Repo | Notes |
 |------|--------|
-| `warble-tech/warble-bootstrap` | **Private** — bootstrap / platform manifests |
-| `warble-tech/warble-onboarding` | **Private** — this repo (needs `gh auth login` to clone) |
+| `warble-tech/warble-onboarding` | This repo |

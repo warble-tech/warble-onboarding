@@ -66,7 +66,7 @@ All of these are documented in [Goose environment variables](https://goose-docs.
 - Enable MCP servers per task, not globally. Every server adds tool schemas (tokens) and attack surface.
 - Treat web and browser content as untrusted because of prompt injection. Goose has built-in
   [prompt-injection detection](https://goose-docs.ai/docs/guides/security/prompt-injection-detection).
-- Point internal Kubernetes MCP servers (Starling, Heron Ops) at **dev** clusters only.
+- Point Kubernetes MCP servers at **dev** clusters only.
 
 ## 7. Session hygiene and cost
 

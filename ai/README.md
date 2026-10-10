@@ -36,13 +36,7 @@ Warble routes agent work **Anthropic CLI credits first** (Claude Code / Goose-An
 
 ## Domain verification
 
-Warble domains already have Grok / xAI TXT verification on Cloudflare for:
-
-- `warblecloud.com` (apex + `grok.warblecloud.com`)
-- `warblecloud.ai`
-- `frakma.io`
-
-DNS is managed via Cloudflare API; token lives in GCP Secret Manager (`warble-tech` / `cloudflare-api-token`).
+If the xAI console asks for domain verification, add the DNS TXT record it shows (see [01](./01-xai-console-setup.md#domain-ownership)). Keep DNS API tokens in a secret manager, never in the repo.
 
 ## Managing agents
 

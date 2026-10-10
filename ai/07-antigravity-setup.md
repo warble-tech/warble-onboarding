@@ -59,7 +59,7 @@ OS keyring.
 |---------|--------------|-----|
 | Permission preset | **Default** (sandbox on), or **Request Review** | Default runs terminal commands in a sandbox: workspace + temp dirs only, no network, `~/.ssh` and `.env` blocked |
 | **Turbo** preset | **Not on laptops that hold prod credentials** | Turbo means unrestricted commands, full filesystem access, and MCP/web allowed |
-| `--dangerously-skip-permissions` | Throwaway VMs / CI sandboxes only (e.g. `warble-tech/agy-acp-studio` demos) | Skips every approval |
+| `--dangerously-skip-permissions` | Throwaway VMs / CI sandboxes only | Skips every approval |
 | Project scope | One repo per Antigravity project | Agents only see folders in the project |
 | Rules | Repo `AGENTS.md` (shared with Goose) + `.agents/rules/*.md` | Antigravity loads `AGENTS.md` / `GEMINI.md` / `.agents/rules/` automatically |
 | MCP servers | Only what the task needs (Settings → Customizations → Installed MCP Servers) | Fewer tools means less risk and fewer tokens |
