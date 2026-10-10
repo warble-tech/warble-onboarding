@@ -10,6 +10,7 @@ Warble routes agent work **Anthropic CLI credits first** (Claude Code / Goose-An
 | [04 — Warble usage playbook](./04-warble-usage-playbook.md) | Which model for which task; secrets; repos |
 | [05 — 2h/day cost optimization](./05-cost-optimization-2h.md) | Daily budget, credit routing, hard stops |
 | [06 — Anthropic CLI credits](./06-anthropic-cli-credits.md) | Claude Code + using org Anthropic credits first |
+| [07 — Google Antigravity](./07-antigravity-setup.md) | Optional: Antigravity desktop / `agy` CLI — install, permission presets, rules, MCP |
 
 ## Quick start (engineers)
 

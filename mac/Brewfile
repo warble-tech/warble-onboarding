@@ -67,6 +67,8 @@ brew "azure-cli"                  # Azure CLI
 # ── AI / LLM / AGENTS ─────────────────────────────────────────────────────────
 brew "ollama"                     # local LLM runtime
 cask "block-goose"                # Goose desktop (CLI via install-devtools.sh too)
+# Optional: Google Antigravity desktop — opt in with WARBLE_INSTALL_ANTIGRAVITY=1 (see ai/07)
+# cask "antigravity"
 
 # ── GIT TOOLING ───────────────────────────────────────────────────────────────
 brew "gh"             # GitHub CLI

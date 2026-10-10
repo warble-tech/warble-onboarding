@@ -263,6 +263,21 @@ else
     skip "BrowserOS"
 fi
 
+# ── GOOGLE ANTIGRAVITY CLI (agy) — optional ──────────────────────────────────
+# Opt-in: WARBLE_INSTALL_ANTIGRAVITY=1 bash install-devtools.sh
+# Docs: https://antigravity.google/docs/cli/install  ·  guide: ai/07-antigravity-setup.md
+if [ "${WARBLE_INSTALL_ANTIGRAVITY:-0}" = "1" ]; then
+    step "Installing Antigravity CLI (agy)..."
+    if ! command -v agy &>/dev/null; then
+        curl -fsSL https://antigravity.google/cli/install.sh | bash
+        export PATH="$HOME/.local/bin:$PATH"
+        ok "agy $(agy --version 2>/dev/null | head -1 || echo installed)"
+        echo "    Sign in on first run: agy   ·  Desktop app: https://antigravity.google/download?os=linux"
+    else
+        skip "agy"
+    fi
+fi
+
 # ── GITHUB CLI ────────────────────────────────────────────────────────────────
 step "Installing GitHub CLI..."
 if ! which gh &>/dev/null; then
@@ -318,6 +333,7 @@ echo " Auth GitHub:   gh auth login"
 echo " Goose setup:   goose configure   # xAI + Anthropic providers"
 echo " Claude Code:   claude            # Anthropic CLI credits"
 echo " BrowserOS:     open from apps; wire API keys"
+echo " Antigravity:   optional — WARBLE_INSTALL_ANTIGRAVITY=1 (see ai/07)"
 echo " Docker:        skipped by default (WARBLE_INSTALL_DOCKER=1 to install)"
 echo " List clusters: kind get clusters  # needs a container runtime if local"
 echo " Start Ollama:  ollama serve"

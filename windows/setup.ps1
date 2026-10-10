@@ -43,6 +43,7 @@ $allTools = [ordered]@{
     goose      = @{ label = "Goose CLI (primary coding agent)";                default = $true  }
     claude     = @{ label = "Claude Code CLI (Anthropic credits)";             default = $true  }
     browseros  = @{ label = "BrowserOS (agentic browser installer)";           default = $true  }
+    antigravity = @{ label = "Google Antigravity CLI (agy) — optional";        default = $false }
     gitcfg     = @{ label = "Git global config (editor, rebase, branch)";      default = $true  }
 }
 
@@ -265,6 +266,19 @@ if (Has "browseros") {
     }
 }
 
+# ── GOOGLE ANTIGRAVITY CLI (agy) — optional ─────────────────────────────────
+# Docs: https://antigravity.google/docs/cli/install  ·  guide: ai/07-antigravity-setup.md
+if (Has "antigravity") {
+    Step "Installing Antigravity CLI (agy)..."
+    if (Get-Command agy -ErrorAction SilentlyContinue) {
+        Skip "agy"
+    } else {
+        Invoke-RestMethod https://antigravity.google/cli/install.ps1 | Invoke-Expression
+        Ok "agy (restart terminal; sign in on first run: agy)"
+        Write-Host "  Desktop app: https://antigravity.google/download" -ForegroundColor Yellow
+    }
+}
+
 # ── GIT CONFIG ───────────────────────────────────────────────────────────────
 if (Has "gitcfg") {
     Step "Git global config..."
@@ -293,6 +307,7 @@ Write-Host "  Claude Code:   claude            # Anthropic credits"
 Write-Host "  BrowserOS:     finish installer; wire API keys"
 Write-Host "  Docker:        OFF by default (re-run and enable if needed)"
 Write-Host "  kind cluster:  kind create cluster  # needs container runtime"
+Write-Host "  Antigravity:   optional — see ai/07-antigravity-setup.md"
 Write-Host "  Launch k9s:    k9s"
 Write-Host "  AI guide:      warble-onboarding/ai/README.md"
 Write-Host ""

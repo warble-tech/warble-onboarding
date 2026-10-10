@@ -10,6 +10,7 @@ Dev toolchain setup for Warble engineers. Pick your platform and run one script.
 | **Claude Code** | Anthropic CLI — burn **org Anthropic credits first** |
 | **BrowserOS** | Agentic browser (BYO keys) |
 | **xAI console** | PAYG for Grok when not on Anthropic |
+| **Antigravity** | Optional — Google agentic IDE + `agy` CLI ([ai/07](./ai/07-antigravity-setup.md)) |
 
 → **[ai/README.md](./ai/README.md)** — console, PAYG costs, **2h/day budget**, Goose, Anthropic credits.
 
@@ -167,6 +168,7 @@ k9s
 | `goose` | Primary coding agent (xAI / Anthropic) |
 | `claude` | Anthropic Claude Code CLI |
 | BrowserOS | Agentic browser |
+| `agy` | Google Antigravity CLI (optional) |
 | `tofu` | OpenTofu — Terraform OSS fork |
 | `terraform` | Terraform — legacy compat |
 | `gcloud` | Google Cloud CLI |
